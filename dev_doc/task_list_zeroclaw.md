@@ -115,7 +115,7 @@ ufw enable
 1. 确定服务器架构：`uname -m`（x86_64 或 aarch64）
 
 2. 访问 ZeroClaw GitHub Releases 页面，找到最新版本的 tar.gz 下载链接：
-   - 格式类似：`https://github.com/zeroclaw-labs/zeroclaw/releases/download/v{版本号}/zeroclaw-{版本号}-linux-{架构}.tar.gz`
+   - 文件格式类似：`zeroclaw-x86_64(CPU架构)-unknown(开源项目)-linux(操作系统)-gnu(GNU libc).tar.gz`
    - 如果没有预编译版本，需要在有 Rust 环境的机器上从源码编译：
      ```
      cd /root/下载/zeroclaw-master
