@@ -149,3 +149,86 @@
 |------|------|
 | `common.ts` | 共享常量（DocsUrl、BlogUrl） |
 | `utils.ts` | 共享工具函数（throttleWithTrailingInvocation、assertUnreachable） |
+
+---
+
+## Server B — amigo.agentkm.com (ZeroClaw 宿主机)
+
+### 基本信息
+- **IP**: 45.82.121.249
+- **域名**: amigo.agentkm.com
+- **OS**: Debian 12 (Bookworm) x86_64
+- **SSL**: Let's Encrypt（certbot 自动续期）
+
+### 目录结构
+
+```
+/opt/zeroclaw/
+├── bin/
+│   ├── zeroclaw                  ← symlink → zeroclaw-0.6.8
+│   └── zeroclaw-0.6.8            ← v0.6.8 二进制 (35MB)
+├── data/
+│   └── users/                    ← 每用户独立数据目录 (owner=agent:agent, mode=700)
+│       └── {instanceId}/
+│           ├── config.toml        ← 用户 ZeroClaw 配置 (mode 600, owner agent:agent)
+│           └── workspace/         ← 用户工作空间
+├── provisioning/
+│   ├── package.json              ← Express 4.21.2 依赖, type=module
+│   ├── package-lock.json         ← npm lockfile
+│   ├── node_modules/             ← Express + 68 deps
+│   ├── .env                      ← API Key + ADMIN_KEY (chmod 600)
+│   └── src/                      ← Provisioning API 源码 (ES Module .js)
+│       ├── index.js              ← Express 入口, 路由定义, 127.0.0.1:3100
+│       ├── auth.js               ← HMAC-SHA256 认证中间件
+│       ├── systemd.js            ← systemd 服务管理 (provision/deprovision/status/config)
+│       ├── nginx.js              ← Nginx 动态路由生成/删除
+│       ├── config.js             ← config.toml 模板渲染 + 正则替换
+│       └── health.js             ← 系统健康检查 (实例数/版本/磁盘)
+├── logs/
+│   └── update.log                ← update-all.sh 执行日志
+└── updates/
+    └── update-all.sh             ← 一键更新脚本 (cron 每天 03:00 UTC)
+```
+
+### 系统配置文件
+
+| 文件路径 | 作用 |
+|----------|------|
+| `/etc/systemd/system/zeroclaw@.service` | systemd 模板 unit — %i 替换为实例 ID，cgroup 资源限制 (256M/50%/64tasks) |
+| `/etc/systemd/system/agent.slice` | cgroup slice — 统一管理所有 ZeroClaw 实例资源 |
+| `/etc/systemd/system/provisioning.service` | Provisioning API 服务 — root 用户运行, EnvironmentFile=.env, port 3100 |
+| `/etc/nginx/sites-available/default` | Nginx 主配置 — SSL + 反向代理 + 动态路由 include |
+| `/etc/nginx/zeroclaw-routes/*.conf` | 每用户 Nginx location 路由片段 (P5 动态生成) |
+| `/etc/letsencrypt/live/amigo.agentkm.com/` | SSL 证书目录 |
+
+### 运行用户
+- **agent** (uid 系统自动分配, shell=/bin/false) — 所有 ZeroClaw 实例以此用户身份运行
+
+### 防火墙
+- UFW 已启用，仅开放 22/tcp, 80/tcp, 443/tcp
+- Provisioning API 端口 3100 仅监听 127.0.0.1，不对外暴露
+
+### 端口分配
+- ZeroClaw 实例: 42618 起 (BASE_PORT + numericId - 1)
+- Provisioning API: 3100 (127.0.0.1)
+
+### 安全配置 (P6 验证通过)
+- PROVISIONING_API_KEY: 64 字符 hex (openssl rand -hex 32)
+- SSL: TLSv1.3 / Let's Encrypt / 有效期至 2026-07-02
+- 防火墙: UFW 仅 22/80/443
+- API 端口 3100: 仅监听 127.0.0.1
+- agent 用户: shell=/bin/false (禁止登录)
+- .env: 权限 600
+- config.toml: 权限 600, owner agent:agent
+- HMAC 认证: timingSafeEqual 防时序攻击, 5 分钟时间窗口防重放
+
+### 更新机制 (P7 部署)
+- **脚本**: `/opt/zeroclaw/updates/update-all.sh` — 从 GitHub Release 获取最新版本, 滚动重启所有实例, 保留最近 3 个版本
+- **cron**: `0 3 * * *` (每天 UTC 凌晨 3:00)
+- **日志**: `/opt/zeroclaw/logs/update.log`
+- **回滚**: 将 symlink 指回旧版本二进制即可
+
+### 集成验证状态 (P8 完成)
+- 手动开通/注销: 4/4 测试通过
+- Server A 联调: .env.server 已配置, HTTPS 通信验证通过
+- 待完成: Server A 重新部署后端到端 Stripe 支付→自动开通验证

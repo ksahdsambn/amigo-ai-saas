@@ -255,3 +255,230 @@ docker compose down && docker compose up -d --build
 #### 备注
 - 502 实际上在 nginx client 日志中已不存在（页面返回 200），但登录后所有涉及 ZeroclawInstance 的操作都会 500
 - 本机 wasp CLI v0.21.1 可用，但无本地数据库，迁移文件为手动编写
+
+---
+
+## 2026-04-03
+
+### 操作模型
+glm-5.1 (zhipuai-coding-plan/glm-5.1)
+
+### 操作内容: ZeroClaw Server B 部署 — P1~P4 阶段
+
+按照 `dev_doc/task_list_zeroclaw.md` 任务清单，按顺序完成 P1~P4 阶段。
+
+#### Server B 信息
+- **域名**: amigo.agentkm.com
+- **IP**: 45.82.121.249
+- **SSH**: root@45.82.121.249:22
+- **OS**: Debian 12 (Bookworm)
+- **架构**: x86_64
+
+#### P1 · 系统初始化
+
+##### P1.1 — 安装基础软件
+- `apt-get install -y nginx certbot python3-certbot-nginx nodejs npm curl`
+- **验证**: nginx/1.22.1, Node.js v18.20.4, npm 9.2.0, certbot 2.1.0, curl 7.88.1
+
+##### P1.2 — 创建运行用户和目录结构
+- `useradd -r -s /bin/false agent`
+- 目录结构:
+  - `/opt/zeroclaw/bin/` — 二进制 + 版本管理
+  - `/opt/zeroclaw/data/users/` — 每用户数据目录（owner=agent:agent, mode=700）
+  - `/opt/zeroclaw/provisioning/src/` — Provisioning API
+  - `/opt/zeroclaw/logs/` — 日志
+  - `/opt/zeroclaw/updates/` — 更新脚本
+  - `/etc/nginx/zeroclaw-routes/` — Nginx 动态路由配置片段
+
+##### P1.3 — 配置防火墙
+- `apt-get install -y ufw`（Debian 默认无 ufw）
+- 开放端口: 22/tcp, 80/tcp, 443/tcp
+- **验证**: `ufw status` 仅显示 22/80/443
+
+#### P2 · ZeroClaw 二进制部署
+
+##### P2.1 — 下载并安装 ZeroClaw 二进制
+- **版本**: v0.6.8
+- **来源**: `https://github.com/zeroclaw-labs/zeroclaw/releases/download/v0.6.8/zeroclaw-x86_64-unknown-linux-gnu.tar.gz`
+- **安装路径**: `/opt/zeroclaw/bin/zeroclaw-0.6.8`
+- **Symlink**: `/opt/zeroclaw/bin/zeroclaw` → `zeroclaw-0.6.8`
+- **验证**: `/opt/zeroclaw/bin/zeroclaw --version` → `zeroclaw 0.6.8`
+
+#### P3 · systemd 配置
+
+##### P3.1 — 创建 zeroclaw@.service 模板 unit
+- **文件**: `/etc/systemd/system/zeroclaw@.service`
+- **内容**: Type=simple, ExecStart=zeroclaw daemon, ZEROCLAW_CONFIG_DIR=%i, User=agent, MemoryMax=256M, CPUQuota=50%, Slice=agent.slice
+
+##### P3.2 — 创建 agent.slice
+- **文件**: `/etc/systemd/system/agent.slice`
+- **内容**: CPUAccounting=yes, MemoryAccounting=yes
+- `systemctl daemon-reload` 完成
+- **验证**: `systemctl list-unit-files | grep zeroclaw` 显示 zeroclaw@.service
+
+#### P4 · Nginx 反向代理
+
+##### P4.1 — 配置 SSL 证书
+- `certbot --nginx -d amigo.agentkm.com --non-interactive --agree-tos`
+- **管理员邮箱**: 自动生成随机邮箱
+- **证书路径**: `/etc/letsencrypt/live/amigo.agentkm.com/`
+- **有效期至**: 2026-07-02
+- **自动续期**: certbot 已配置定时任务
+
+##### P4.2 — 配置 Nginx 主配置
+- **文件**: `/etc/nginx/sites-available/default`
+- **内容**:
+  - HTTP 80 → 301 重定向到 HTTPS
+  - HTTPS 443 server_name=amigo.agentkm.com
+  - `/api/` → proxy_pass http://127.0.0.1:3100 (Provisioning API)
+  - `include /etc/nginx/zeroclaw-routes/*.conf` (动态路由)
+  - 默认 location `/` → 404
+- **验证**:
+  - `nginx -t` syntax OK
+  - HTTP → HTTPS 301 重定向正常
+  - `https://amigo.agentkm.com/` → 404（正确）
+  - `https://amigo.agentkm.com/api/health` → 502（Provisioning API 尚未部署，符合预期）
+
+#### P5 · Provisioning API 开发
+
+##### P5.1 — 初始化 npm 项目
+- **目录**: `/opt/zeroclaw/provisioning/`
+- **package.json**: name=zeroclaw-provisioning, type=module, express ^4.21.2
+- **验证**: node_modules/ 和 package-lock.json 已生成
+
+##### P5.2 — auth.js (HMAC 认证中间件)
+- **文件**: `/opt/zeroclaw/provisioning/src/auth.js`
+- **功能**: 提取 X-Timestamp + X-Signature 头 → 5分钟时间窗口检查 → HMAC-SHA256 签名验证 → crypto.timingSafeEqual 防时序攻击
+- **测试**: 无认证头 → 401, 错误签名 → 401, 正确签名 → 通过, 过期时间戳 → 401
+
+##### P5.3 — config.js (config.toml 模板渲染)
+- **文件**: `/opt/zeroclaw/provisioning/src/config.js`
+- **功能**: renderConfig(opts) 生成 TOML 配置, updateConfigContent(content, opts) 用正则替换 api_key + default_provider
+
+##### P5.4 — systemd.js (systemd 服务管理)
+- **文件**: `/opt/zeroclaw/provisioning/src/systemd.js`
+- **功能**: provisionInstance (创建目录+写config+启systemd+等待健康检查), deprovisionInstance (停止+禁用，保留数据), getInstanceStatus (读取ActiveState/PID/Memory/Port), updateConfig (替换api_key+provider+重启)
+- **辅助**: waitForHealth 轮询 /health 端点，超时30秒
+
+##### P5.5 — nginx.js (Nginx 路由管理)
+- **文件**: `/opt/zeroclaw/provisioning/src/nginx.js`
+- **功能**: addNginxRoute (生成 /etc/nginx/zeroclaw-routes/{id}.conf + reload), removeNginxRoute (删除 + reload, try-catch容错)
+- **location 块**: proxy_pass + WebSocket 升级头 + proxy_read_timeout 86400
+
+##### P5.6 — health.js + index.js (健康检查 + 入口)
+- **文件**: `/opt/zeroclaw/provisioning/src/health.js` — healthCheck() 返回 activeInstances, totalInstances, zeroclawVersion, diskUsage, timestamp
+- **文件**: `/opt/zeroclaw/provisioning/src/index.js` — Express 入口，路由：
+  - GET /api/health (无认证)
+  - POST /api/provision (认证)
+  - POST /api/deprovision (认证)
+  - GET /api/instances/:id (认证)
+  - POST /api/instances/:id/config (认证)
+  - POST /api/update-all (admin key)
+- 监听 127.0.0.1:3100
+
+##### P5.7 — 创建 systemd service + .env
+- **文件**: `/etc/systemd/system/provisioning.service` — User=root, EnvironmentFile=.env, ExecStart=/usr/bin/node src/index.js
+- **文件**: `/opt/zeroclaw/provisioning/.env` — PROVISIONING_PORT=3100, PROVISIONING_API_KEY + ADMIN_KEY (openssl rand -hex 32), ZEROCLOW_BINARY, DATA_DIR, DOMAIN=amigo.agentkm.com
+- **权限**: .env chmod 600
+- **验证**:
+  - `systemctl status provisioning` → active (running)
+  - `curl http://127.0.0.1:3100/api/health` → `{"status":"ok","activeInstances":0,"totalInstances":0,"zeroclawVersion":"zeroclaw 0.6.8","diskUsage":"6%"}`
+  - `curl https://amigo.agentkm.com/api/health` → 同上（Nginx HTTPS 反代正常）
+  - 认证中间件 4 项测试全部通过
+
+##### 生成的密钥（需配置到 Server A .env.server）
+- **PROVISIONING_API_KEY**: `3ac0a9b9d6b54034fdd0c4ae874bae75a0bcf2ede67d3f6ea7398c24be5c25a7`
+- **ADMIN_KEY**: `b0bc773af11214d462ddf61000cec6844e9c79f40fa30273b59452baaff60ae0`
+
+## 2026-04-03 (下午)
+
+### 操作模型
+glm-5.1 (zhipuai-coding-plan/glm-5.1)
+
+### 操作内容: ZeroClaw Server B 部署 — P6~P8 阶段
+
+按照 `dev_doc/task_list_zeroclaw.md` 任务清单，按顺序完成 P6~P8 阶段。
+
+#### P6 · 安全加固
+
+##### P6.1 — 安全检查清单
+- **PROVISIONING_API_KEY**: 64 字符 hex ✅
+- **SSL 证书**: TLSv1.3, Let's Encrypt, 有效期至 2026-07-02 ✅
+- **防火墙**: UFW 仅 22/80/443 ✅
+- **API 端口**: 3100 仅监听 127.0.0.1 ✅
+- **agent 用户**: shell=/bin/false ✅
+- **.env 权限**: -rw------- (600) ✅
+- **config.toml 权限**: 600 (P8 实例创建后验证) ✅
+
+##### P6.2 — HMAC 认证测试
+- 无认证头 → 401 "Missing authentication headers" ✅
+- 错误签名 → 401 "Invalid signature" ✅
+- 过期 timestamp → 401 "Timestamp expired" ✅
+- 正确签名 → 200 ✅
+- /api/health 无需认证 → 200 ✅
+
+#### P7 · 更新机制
+
+##### P7.1 — update-all.sh 一键更新脚本
+- **文件**: `/opt/zeroclaw/updates/update-all.sh` (4353 bytes, chmod +x)
+- **流程**: 获取 GitHub 最新版本 → 比较当前版本 → 下载对应架构 tar.gz → 验证二进制 → 替换 symlink → 滚动重启所有 zeroclaw@* 实例 → 清理旧版本(保留最近3个)
+- **cron 定时任务**: `0 3 * * *` (每天 UTC 凌晨 3 点自动执行)
+- **cron 服务**: 已安装 cron 包并启用
+- **测试结果**: 脚本正确获取 GitHub 最新版本 0.6.8，检测到当前已是最新版并正常退出
+
+#### P8 · 集成验证
+
+##### P8.1 — 手动开通/注销测试
+
+**测试 1: 手动创建并启动 ZeroClaw 实例**
+- 创建 test001 目录 + config.toml (port=42999, path_prefix=/test001)
+- `systemctl start zeroclaw@test001` → active (running)
+- 端口 42999 正常监听, health 返回 status:ok
+- 日志显示 Gateway + WebSocket + REST API 端点正常注册
+- 清理测试数据 → 成功
+
+**测试 2: 通过 Provisioning API 开通**
+- POST /api/provision (instanceId=utest, port=42999)
+- 返回 success:true, dashboardUrl: https://amigo.agentkm.com/utest/
+- systemd 服务 enabled+active, cgroup 限制生效 (Memory 4.9M/max 256M)
+- Nginx 路由文件已生成 (location /utest/ + WebSocket 升级头 + proxy_read_timeout 86400)
+- health 端点返回 ok
+- config.toml 权限 -rw------- (600, agent:agent) — P6.1 遗留验证项 ✅
+
+**测试 3: 通过 API 注销**
+- POST /api/deprovision (instanceId=utest)
+- 返回 success:true
+- 服务 inactive, Nginx 路由文件已删除
+- 数据目录 /opt/zeroclaw/data/users/utest/ 保留 ✅
+
+**测试 4: 资源限制验证**
+- MemoryMax = 268435456 (256MB) ✅
+- MemorySwapMax = 0 ✅
+- CPUQuotaPerSecUSec = 500ms (50%) ✅
+- TasksMax = 64 ✅
+- Slice = agent.slice ✅
+
+##### P8.2 — 与 Server A 联调验证
+- **Server A .env.server 已更新**: SERVER_B_API_URL=https://amigo.agentkm.com, SERVER_B_API_KEY=3ac0a9b9d6b54034fdd0c4ae874bae75a0bcf2ede67d3f6ea7398c24be5c25a7
+- **Server A .env.server.example 已更新**: 域名改为 amigo.agentkm.com
+- **联调测试** (模拟 Server A 使用 .env.server 中的 KEY 调用 Server B):
+  - 外部 HTTPS health → 200 ✅
+  - provision → success:true, systemd active ✅
+  - Nginx 路由生成 → 正确 ✅
+  - API Key 更新 → config.toml 中 api_key + provider 已修改 ✅
+  - deprovision → 服务停止 ✅
+- **待做**: Server A 重新部署后触发实际 Stripe 支付 → 自动开通端到端验证
+
+---
+
+#### ZeroClaw Server B 部署总结
+
+所有阶段 P1~P8 均已完成：
+- ✅ P1 系统初始化
+- ✅ P2 ZeroClaw 二进制部署 (v0.6.8)
+- ✅ P3 systemd 配置 (模板 unit + agent.slice)
+- ✅ P4 Nginx 反向代理 (SSL + 动态路由)
+- ✅ P5 Provisioning API 开发 (Express + HMAC 认证)
+- ✅ P6 安全加固 (7 项检查 + 认证测试)
+- ✅ P7 更新机制 (update-all.sh + cron)
+- ✅ P8 集成验证 (4 个手动测试 + Server A 联调)

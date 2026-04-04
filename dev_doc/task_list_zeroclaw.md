@@ -615,7 +615,7 @@ systemctl enable --now provisioning
 
 **设置权限：** `chmod +x /opt/zeroclaw/updates/update-all.sh`
 
-**（可选）设置 cron：**
+10. **设置 cron：**
 
 ```
 crontab -e
