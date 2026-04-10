@@ -13,27 +13,29 @@ import type {
 import * as z from "zod";
 import { SubscriptionStatus } from "../payment/plans";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
-import { GeneratedSchedule, TaskPriority } from "./schedule";
+import { ProjectBreakdown } from "./schedule";
 
-const openAi = setUpOpenAi();
-function setUpOpenAi(): OpenAI {
-  if (process.env.OPENAI_API_KEY) {
-    return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = setUpNvidiaClient();
+function setUpNvidiaClient(): OpenAI {
+  if (process.env.NVIDIA_API_KEY) {
+    return new OpenAI({
+      apiKey: process.env.NVIDIA_API_KEY,
+      baseURL: "https://integrate.api.nvidia.com/v1",
+    });
   } else {
-    throw new Error("OpenAI API key is not set");
+    throw new Error("NVIDIA API key is not set");
   }
 }
 
-//#region Actions
 const generateGptResponseInputSchema = z.object({
-  hours: z.number(),
+  projectGoal: z.string().nonempty(),
 });
 
 type GenerateGptResponseInput = z.infer<typeof generateGptResponseInputSchema>;
 
 export const generateGptResponse: GenerateGptResponse<
   GenerateGptResponseInput,
-  GeneratedSchedule
+  ProjectBreakdown
 > = async (rawArgs, context) => {
   if (!context.user) {
     throw new HttpError(
@@ -42,44 +44,29 @@ export const generateGptResponse: GenerateGptResponse<
     );
   }
 
-  const { hours } = ensureArgsSchemaOrThrowHttpError(
+  const { projectGoal } = ensureArgsSchemaOrThrowHttpError(
     generateGptResponseInputSchema,
     rawArgs,
   );
-  const tasks = await context.entities.Task.findMany({
-    where: {
-      user: {
-        id: context.user.id,
-      },
-    },
-  });
 
-  console.log("Calling open AI api");
-  const generatedSchedule = await generateScheduleWithGpt(tasks, hours);
-  if (generatedSchedule === null) {
+  console.log("Calling NVIDIA NIM API");
+  const breakdown = await generateProjectBreakdown(projectGoal);
+  if (breakdown === null) {
     throw new HttpError(
       500,
-      "Encountered a problem in communication with OpenAI",
+      "Encountered a problem in communication with AI service",
     );
   }
 
   const createResponse = context.entities.GptResponse.create({
     data: {
       user: { connect: { id: context.user.id } },
-      content: JSON.stringify(generatedSchedule),
+      content: JSON.stringify(breakdown),
     },
   });
 
   const transactions: PrismaPromise<GptResponse | User>[] = [createResponse];
 
-  // We decrement the credits for users without an active subscription
-  // after using up tokens to get a daily plan from Chat GPT.
-  //
-  // This way, users don't feel cheated if something goes wrong.
-  // On the flipside, users can theoretically abuse this and spend more
-  // credits than they have, but the damage should be pretty limited.
-  //
-  // Think about which option you prefer for your app and edit the code accordingly.
   if (!isUserSubscribed(context.user)) {
     if (context.user.credits > 0) {
       const decrementCredit = context.entities.User.update({
@@ -102,7 +89,7 @@ export const generateGptResponse: GenerateGptResponse<
   console.log("Decrementing credits and saving response");
   await prisma.$transaction(transactions);
 
-  return generatedSchedule;
+  return breakdown;
 };
 
 function isUserSubscribed(user: User) {
@@ -208,9 +195,7 @@ export const deleteTask: DeleteTask<DeleteTaskInput, Task> = async (
 
   return task;
 };
-//#endregion
 
-//#region Queries
 export const getGptResponses: GetGptResponses<void, GptResponse[]> = async (
   _args,
   context,
@@ -245,98 +230,83 @@ export const getAllTasksByUser: GetAllTasksByUser<void, Task[]> = async (
     },
   });
 };
-//#endregion
 
-async function generateScheduleWithGpt(
-  tasks: Task[],
-  hours: number,
-): Promise<GeneratedSchedule | null> {
-  const parsedTasks = tasks.map(({ description, time }) => ({
-    description,
-    time,
-  }));
-
-  const completion = await openAi.chat.completions.create({
-    model: "gpt-5-nano",
+async function generateProjectBreakdown(
+  projectGoal: string,
+): Promise<ProjectBreakdown | null> {
+  const completion = await client.chat.completions.create({
+    model: "google/gemma-4-31b-it",
     messages: [
       {
         role: "system",
-        content:
-          "you are an expert daily planner. you will be given a list of main tasks and an estimated time to complete each task. You will also receive the total amount of hours to be worked that day. Your job is to return a detailed plan of how to achieve those tasks by breaking each task down into at least 3 subtasks each. MAKE SURE TO ALWAYS CREATE AT LEAST 3 SUBTASKS FOR EACH MAIN TASK PROVIDED BY THE USER! YOU WILL BE REWARDED IF YOU DO.",
+        content: `You are an expert project planner and technical architect. Given a project goal, you will break it down into a structured plan with three priority phases.
+
+You MUST respond with ONLY a valid JSON object in this exact format, with no other text before or after:
+
+{
+  "phases": [
+    {
+      "priority": "high",
+      "label": "MVP 必须完成",
+      "tasks": [
+        {
+          "description": "Task description",
+          "time": "2 周"
+        }
+      ]
+    },
+    {
+      "priority": "medium",
+      "label": "上线前应完成",
+      "tasks": [
+        {
+          "description": "Task description",
+          "time": "3 天"
+        }
+      ]
+    },
+    {
+      "priority": "low",
+      "label": "后续迭代可做",
+      "tasks": [
+        {
+          "description": "Task description",
+          "time": "1 周"
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+- Always include exactly 3 phases with priorities: "high", "medium", "low"
+- The high priority phase label must be "MVP 必须完成"
+- The medium priority phase label must be "上线前应完成"
+- The low priority phase label must be "后续迭代可做"
+- Each phase should have 3-6 specific, actionable tasks
+- Time estimates should use "天" (days) or "周" (weeks) as units
+- Tasks should be realistic and technically specific
+- Respond ONLY with the JSON, no markdown, no code fences, no explanation`,
       },
       {
         role: "user",
-        content: `I will work ${hours} hours today. Here are the tasks I have to complete: ${JSON.stringify(
-          parsedTasks,
-        )}. Please help me plan my day by breaking the tasks down into actionable subtasks with time and priority status.`,
+        content: `Please break down this project into a structured plan: ${projectGoal}`,
       },
     ],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "parseTodaysSchedule",
-          description: "parses the days tasks and returns a schedule",
-          parameters: {
-            type: "object",
-            properties: {
-              tasks: {
-                type: "array",
-                description:
-                  "Name of main tasks provided by user, ordered by priority",
-                items: {
-                  type: "object",
-                  properties: {
-                    name: {
-                      type: "string",
-                      description: "Name of main task provided by user",
-                    },
-                    priority: {
-                      type: "string",
-                      enum: ["low", "medium", "high"] as TaskPriority[],
-                      description: "task priority",
-                    },
-                  },
-                },
-              },
-              taskItems: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    description: {
-                      type: "string",
-                      description:
-                        'detailed breakdown and description of sub-task related to main task. e.g., "Prepare your learning session by first reading through the documentation"',
-                    },
-                    time: {
-                      type: "number",
-                      description:
-                        "time allocated for a given subtask in hours, e.g. 0.5",
-                    },
-                    taskName: {
-                      type: "string",
-                      description: "name of main task related to subtask",
-                    },
-                  },
-                },
-              },
-            },
-            required: ["tasks", "taskItems", "time", "priority"],
-          },
-        },
-      },
-    ],
-    tool_choice: {
-      type: "function",
-      function: {
-        name: "parseTodaysSchedule",
-      },
-    },
-    temperature: 1,
+    temperature: 0.7,
   });
 
-  const gptResponse =
-    completion?.choices[0]?.message?.tool_calls?.[0]?.function.arguments;
-  return gptResponse !== undefined ? JSON.parse(gptResponse) : null;
+  const content = completion.choices[0]?.message?.content || "";
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error("No JSON found in AI response:", content);
+    return null;
+  }
+
+  try {
+    return JSON.parse(jsonMatch[0]) as ProjectBreakdown;
+  } catch (e) {
+    console.error("Failed to parse AI response as JSON:", e);
+    return null;
+  }
 }

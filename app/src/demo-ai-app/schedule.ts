@@ -1,17 +1,16 @@
-export type TaskPriority = "low" | "medium" | "high";
+export type TaskPriority = "high" | "medium" | "low";
 
-export type GeneratedSchedule = {
-  tasks: Task[]; // Main tasks provided by user, ordered by priority
-  taskItems: TaskItem[];
+export type ProjectBreakdown = {
+  phases: Phase[];
 };
 
-export type Task = {
-  name: string;
+export type Phase = {
   priority: TaskPriority;
+  label: string;
+  tasks: PhaseTask[];
 };
 
-export type TaskItem = {
+export type PhaseTask = {
   description: string;
-  time: number; // total time it takes to complete given main task in hours, e.g. 2.75
-  taskName: string; // name of main task related to subtask
+  time: string;
 };
