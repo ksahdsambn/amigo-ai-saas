@@ -3,7 +3,7 @@ set -e
 
 LOG_FILE="/opt/opensaas/deploy.log"
 REPO_DIR="/opt/opensaas/repo"
-COMPOSE_DIR="/opt/opensaas"
+COMPOSE_DIR="/opt/1panel/docker/compose/opensaas"
 BUILD_DIR="/opt/opensaas/repo/app/.wasp/out"
 
 echo "" >> "$LOG_FILE"
@@ -55,11 +55,6 @@ echo "[4/5] 前端同步完成"
 # 5. 重建并重启容器
 echo "[5/5] 重建并重启容器..."
 cd "$COMPOSE_DIR"
-
-if grep -q "OPENAI_API_KEY" docker-compose.yml 2>/dev/null; then
-    sed -i 's|OPENAI_API_KEY:.*|NVIDIA_API_KEY: "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"|' docker-compose.yml
-    echo "[5/5] 已替换 OPENAI_API_KEY -> NVIDIA_API_KEY"
-fi
 
 docker compose build --no-cache server >> "$LOG_FILE" 2>&1
 docker compose up -d server client >> "$LOG_FILE" 2>&1
