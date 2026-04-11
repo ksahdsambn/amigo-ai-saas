@@ -561,12 +561,84 @@ glm-5.1 (zhipuai-coding-plan/glm-5.1)
 - **变更**: server 环境变量 `OPENAI_API_KEY` → `NVIDIA_API_KEY`（值替换为 nvapi-...）
 - **部署方式**: 用户需手动上传到服务器 `/opt/opensaas/docker-compose.yml`
 
-#### 6. 部署脚本
-- **文件**: `deploy-update.sh`（项目根目录）
-- **功能**: 自动拉取代码 → wasp build → vite build → 更新 server-build/client-build → docker compose 重建
-- **使用**: 在部署服务器执行 `bash /opt/opensaas/repo/deploy-update.sh`
-
-#### 7. 故障排查记录
+#### 6. 故障排查记录
 - **问题**: 用户测试时输入"出发去香港的路程"报 "Operation arguments validation failed"
 - **原因**: 部署服务器后端仍在运行旧代码（期望 `{ hours: number }`），新前端发送 `{ projectGoal: string }`
 - **解决**: 需更新服务器上的构建产物 + docker-compose.yml 环境变量，重建容器
+
+#### 7. 构建产物纳入 Git 跟踪
+- **文件**: `app/.gitignore`
+- **变更**: 在 `.wasp/` 排除规则后添加 `!.wasp/out/` 及子目录的白名单规则，使 `app/.wasp/out/` 构建产物可被 git 跟踪并推送
+- **原因**: 服务器无需安装 wasp/vite 环境，直接 `git pull` 获取构建产物，部署更快更稳定
+- **构建产物大小**: 约 21MB（1684 个文件，含 SDK + server bundle + web-app build）
+- **首次 `git push`**: commit `7cdc4b2`，1685 files changed, +102824 insertions
+
+#### 8. docker-compose.yml 更新（本地）
+- **文件**: `/root/下载/docker-compose.yml`
+- **变更**: server 环境变量 `OPENAI_API_KEY: "sk-proj-z881..."` → `NVIDIA_API_KEY: "nvapi-rc9sU6qeS4O..."`
+- **部署方式**: 用户手动上传到服务器 `/opt/opensaas/docker-compose.yml`
+
+#### 9. 部署脚本 deploy-server.sh
+- **文件**: `deploy-server.sh`（项目根目录）
+- **功能**: 服务器端自动部署脚本，流程：
+  1. `cd /opt/opensaas/repo && git fetch --all && git reset --hard origin/main`
+  2. 比对 git commit hash，无变化则跳过部署
+  3. rsync 同步后端构建产物 → `/opt/opensaas/server-build/`（排除 node_modules）
+  4. rsync 同步前端构建产物 → `/opt/opensaas/client-build/`
+  5. 自动检测并替换 docker-compose.yml 中的 OPENAI_API_KEY → NVIDIA_API_KEY
+  6. `docker compose build --no-cache server && docker compose up -d server client`
+  7. 健康检查，输出结果
+- **日志**: `/opt/opensaas/deploy.log`
+- **删除旧文件**: `deploy-update.sh`（旧版，需要服务器有 wasp 环境，已废弃）
+
+#### 10. 服务器初始化步骤（一次性）
+```bash
+# 克隆私有仓库（使用 PAT token）
+cd /opt/opensaas/repo
+git clone https://x-access-token:<PAT>@github.com/ksahdsambn/amigo-ai-saas.git .
+chmod +x /opt/opensaas/repo/deploy-server.sh
+```
+- PAT token 只在首次 `git clone` 时使用，之后 git 会保存在 `.git/config` 中自动认证
+
+#### 11. 1Panel 计划任务配置
+- **任务类型**: Shell 脚本
+- **任务名称**: Amigo 自动部署
+- **执行周期**: 每 30 分钟一次
+- **在容器中执行**: 关闭（不勾选）
+- **用户**: root
+- **解释器**: /bin/bash
+- **脚本内容**: `bash /opt/opensaas/repo/deploy-server.sh`
+- **说明**: 脚本自动检测代码变化，无新 commit 则跳过，不会重复构建
+
+#### 12. 完整日常更新流程
+```
+本地开发机                                    服务器（自动）
+─────────                                    ─────────
+1. 修改代码
+2. cd app && wasp build
+3. REACT_APP_API_URL=https://api.agentkm.com npx vite build
+4. git add -A && git commit -m "xxx"
+5. git push origin main
+                                             6. 1Panel 每30分钟触发 deploy-server.sh
+                                                → git pull 发现有新 commit
+                                                → rsync 同步构建产物
+                                                → docker compose 重建容器
+                                                → 网站更新完成
+```
+
+#### 13. 服务器目录结构
+```
+/opt/opensaas/
+├── docker-compose.yml          # Docker Compose 编排文件
+├── spa.conf                    # Nginx SPA 配置
+├── server-build/               # 后端构建产物（Docker 构建上下文）
+├── client-build/               # 前端构建产物（Nginx 静态文件）
+├── repo/                       # Git 仓库（含构建产物）
+│   ├── deploy-server.sh        # 部署脚本
+│   ├── app/
+│   │   ├── .wasp/out/          # 构建产物（已纳入 Git）
+│   │   ├── src/                # 源代码
+│   │   └── ...
+│   └── ...
+├── deploy.log                  # 部署日志
+└── backup_*/                   # 部署备份（如手动创建）
