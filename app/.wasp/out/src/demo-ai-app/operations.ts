@@ -294,10 +294,12 @@ Rules:
       },
     ],
     temperature: 0.7,
+    max_tokens: 2048,
   });
 
   const content = completion.choices[0]?.message?.content || "";
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     console.error("No JSON found in AI response:", content);
     return null;
@@ -306,7 +308,7 @@ Rules:
   try {
     return JSON.parse(jsonMatch[0]) as ProjectBreakdown;
   } catch (e) {
-    console.error("Failed to parse AI response as JSON:", e);
+    console.error("Failed to parse AI response as JSON:", e, "Content:", content);
     return null;
   }
 }
