@@ -1,0 +1,1 @@
+{"version":3,"file":"mailgun.d.ts","sourceRoot":"","sources":["../../../../../server/email/core/providers/mailgun.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,oBAAoB,EAAE,WAAW,EAAE,MAAM,UAAU,CAAC;AAGlE,wBAAgB,sBAAsB,CACpC,MAAM,EAAE,oBAAoB,GAC3B,WAAW,CAuBb"}

@@ -482,3 +482,91 @@ glm-5.1 (zhipuai-coding-plan/glm-5.1)
 - ✅ P6 安全加固 (7 项检查 + 认证测试)
 - ✅ P7 更新机制 (update-all.sh + cron)
 - ✅ P8 集成验证 (4 个手动测试 + Server A 联调)
+
+---
+
+## 2026-04-11
+
+### 操作模型
+glm-5.1 (zhipuai-coding-plan/glm-5.1)
+
+### 操作内容: AI Scheduler → Agent Examples（项目拆解器） + NVIDIA NIM API 替换
+
+#### 1. 功能重写: AI Day Scheduler → Agent Examples 项目拆解器
+
+##### 1.1 — 重写 schedule.ts 类型定义
+- **文件**: `app/src/demo-ai-app/schedule.ts`
+- **变更**: 移除 `GeneratedSchedule` / `Task` / `TaskItem` / `TaskPriority` 旧类型
+- **新增类型**:
+  - `TaskPriority`: `"high" | "medium" | "low"`
+  - `ProjectBreakdown`: `{ phases: Phase[] }`
+  - `Phase`: `{ priority: TaskPriority, label: string, tasks: PhaseTask[] }`
+  - `PhaseTask`: `{ description: string, time: string }`
+
+##### 1.2 — 重写 operations.ts 后端逻辑
+- **文件**: `app/src/demo-ai-app/operations.ts`
+- **变更**:
+  - OpenAI client → NVIDIA NIM client (`baseURL: https://integrate.api.nvidia.com/v1`)
+  - 模型: `gpt-5-nano` → `google/gemma-4-31b-it`
+  - API Key 环境变量: `OPENAI_API_KEY` → `NVIDIA_API_KEY`
+  - 输入参数: `{ hours: number }` → `{ projectGoal: string }`
+  - 输出类型: `GeneratedSchedule` → `ProjectBreakdown`
+  - AI 调用方式: 移除 function calling，改为 JSON 文本输出 + 正则提取解析
+  - System prompt: 从"日程规划师"改为"项目架构师"，要求返回三阶段优先级结构（高/MVP、中/上线前、低/后续迭代）
+  - 保留: createTask, updateTask, deleteTask, getGptResponses, getAllTasksByUser 不变
+
+##### 1.3 — 重写 DemoAppPage.tsx 前端页面
+- **文件**: `app/src/demo-ai-app/DemoAppPage.tsx`
+- **变更**:
+  - 标题: "AI Day Scheduler" → "Agent Examples"
+  - 副标题: 改为项目拆解器描述
+  - 移除: TodoList、工作小时数输入、Generate Schedule 按钮
+  - 新增: 单一输入框（项目目标）+ "拆解项目" 按钮
+  - 新增: PhaseCard 组件 — 按优先级渲染三阶段卡片
+    - 🔴 高优先级 (红色边框+背景): "MVP 必须完成"
+    - 🟡 中优先级 (黄色边框+背景): "上线前应完成"
+    - 🟢 低优先级 (绿色边框+背景): "后续迭代可做"
+  - 新增: PhaseTaskItem 组件 — 每个任务带 checkbox + 描述 + 时间估算
+
+##### 1.4 — 更新导航栏
+- **文件**: `app/src/client/components/NavBar/constants.ts`
+- **变更**: `demoNavigationitems` 中 "AI Scheduler" → "Agent Examples"
+
+#### 2. 替换 AI API: OpenAI → NVIDIA NIM
+
+| 配置项 | 旧值 | 新值 |
+|--------|------|------|
+| Provider | OpenAI | NVIDIA NIM (OpenAI 兼容) |
+| Base URL | 默认 (api.openai.com) | `https://integrate.api.nvidia.com/v1` |
+| Model | `gpt-5-nano` | `google/gemma-4-31b-it` |
+| API Key Env | `OPENAI_API_KEY` | `NVIDIA_API_KEY` |
+| API Key 值 | sk-proj-z881... | nvapi-rc9sU6qeS4O... |
+| 调用方式 | function calling (tool_choice) | 纯文本 JSON 输出 + 正则解析 |
+| Temperature | 1 | 0.7 |
+
+#### 3. 环境变量更新
+- **文件**: `app/.env.server` — 新增 `NVIDIA_API_KEY=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`
+- **文件**: `app/src/server/validation.ts` — 增加调试日志，错误信息中输出具体 validation errors
+
+#### 4. 构建与部署
+- **后端**: `wasp build` — 成功
+- **前端**: `REACT_APP_API_URL=https://api.agentkm.com npx vite build` — 成功
+- **代码推送**: 3 次 commit 推送到 https://github.com/ksahdsambn/amigo-ai-saas
+  - `f0cfe6e` — 主要功能变更（5 文件，+233 -476 行）
+  - `4ecd4c1` — validation 调试日志
+  - `abb17bc` / `11f8016` — 部署脚本
+
+#### 5. docker-compose.yml 更新
+- **文件**: `/root/下载/docker-compose.yml`
+- **变更**: server 环境变量 `OPENAI_API_KEY` → `NVIDIA_API_KEY`（值替换为 nvapi-...）
+- **部署方式**: 用户需手动上传到服务器 `/opt/opensaas/docker-compose.yml`
+
+#### 6. 部署脚本
+- **文件**: `deploy-update.sh`（项目根目录）
+- **功能**: 自动拉取代码 → wasp build → vite build → 更新 server-build/client-build → docker compose 重建
+- **使用**: 在部署服务器执行 `bash /opt/opensaas/repo/deploy-update.sh`
+
+#### 7. 故障排查记录
+- **问题**: 用户测试时输入"出发去香港的路程"报 "Operation arguments validation failed"
+- **原因**: 部署服务器后端仍在运行旧代码（期望 `{ hours: number }`），新前端发送 `{ projectGoal: string }`
+- **解决**: 需更新服务器上的构建产物 + docker-compose.yml 环境变量，重建容器
