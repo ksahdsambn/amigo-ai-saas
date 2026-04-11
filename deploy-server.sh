@@ -6,64 +6,74 @@ REPO_DIR="/opt/opensaas/repo"
 COMPOSE_DIR="/opt/opensaas"
 BUILD_DIR="/opt/opensaas/repo/app/.wasp/out"
 
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
-
-log "========== 开始部署 =========="
+echo "" >> "$LOG_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ========== 开始部署 ==========" >> "$LOG_FILE"
 
 # 1. 拉取最新代码
-log "Step 1: 拉取最新代码..."
-if [ ! -d "$REPO_DIR" ]; then
-    git clone https://github.com/ksahdsambn/amigo-ai-saas.git "$REPO_DIR" 2>&1 | tee -a "$LOG_FILE"
-else
-    cd "$REPO_DIR" && git fetch --all && git reset --hard origin/main 2>&1 | tee -a "$LOG_FILE"
+echo "[1/5] 拉取最新代码..."
+cd "$REPO_DIR"
+git fetch --all >> "$LOG_FILE" 2>&1
+BEFORE=$(git rev-parse HEAD)
+git reset --hard origin/main >> "$LOG_FILE" 2>&1
+AFTER=$(git rev-parse HEAD)
+
+if [ "$BEFORE" = "$AFTER" ]; then
+    echo "[1/5] 代码无变化，跳过部署"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 代码无变化，跳过部署" >> "$LOG_FILE"
+    exit 0
 fi
 
-# 2. 检查构建产物是否存在
+echo "[1/5] 代码已更新: $BEFORE -> $AFTER"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] 代码更新: $BEFORE -> $AFTER" >> "$LOG_FILE"
+
+# 2. 检查构建产物
+echo "[2/5] 检查构建产物..."
 if [ ! -d "$BUILD_DIR/server" ] || [ ! -d "$BUILD_DIR/web-app/build" ]; then
-    log "ERROR: 构建产物不存在，请先在本地运行 wasp build + vite build 并推送"
+    echo "[2/5] ERROR: 构建产物不存在，请先在本地运行 wasp build + vite build 并 git push"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: 构建产物不存在" >> "$LOG_FILE"
     exit 1
 fi
+echo "[2/5] 构建产物存在"
 
-# 3. 同步后端构建产物到 server-build
-log "Step 2: 同步后端构建产物..."
-rsync -av --delete \
+# 3. 同步后端构建产物
+echo "[3/5] 同步后端构建产物 -> /opt/opensaas/server-build/"
+rsync -a --delete \
     --exclude='node_modules' \
     "$BUILD_DIR/" \
     "/opt/opensaas/server-build/" \
-    2>&1 | tee -a "$LOG_FILE"
+    >> "$LOG_FILE" 2>&1
+echo "[3/5] 后端同步完成"
 
-# 4. 同步前端构建产物到 client-build
-log "Step 3: 同步前端构建产物..."
-rsync -av --delete \
+# 4. 同步前端构建产物
+echo "[4/5] 同步前端构建产物 -> /opt/opensaas/client-build/"
+rsync -a --delete \
     "$BUILD_DIR/web-app/build/" \
     "/opt/opensaas/client-build/" \
-    2>&1 | tee -a "$LOG_FILE"
+    >> "$LOG_FILE" 2>&1
+echo "[4/5] 前端同步完成"
 
 # 5. 重建并重启容器
-log "Step 4: 重建并重启容器..."
+echo "[5/5] 重建并重启容器..."
 cd "$COMPOSE_DIR"
 
-# 确保 docker-compose.yml 中使用 NVIDIA_API_KEY
 if grep -q "OPENAI_API_KEY" docker-compose.yml 2>/dev/null; then
-    log "检测到 OPENAI_API_KEY，替换为 NVIDIA_API_KEY..."
     sed -i 's|OPENAI_API_KEY:.*|NVIDIA_API_KEY: "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"|' docker-compose.yml
+    echo "[5/5] 已替换 OPENAI_API_KEY -> NVIDIA_API_KEY"
 fi
 
-docker compose build --no-cache server 2>&1 | tee -a "$LOG_FILE"
-docker compose up -d server client 2>&1 | tee -a "$LOG_FILE"
+docker compose build --no-cache server >> "$LOG_FILE" 2>&1
+docker compose up -d server client >> "$LOG_FILE" 2>&1
 
-# 6. 健康检查
-log "Step 5: 等待服务启动..."
 sleep 10
 
-if docker compose ps | grep -q "Up"; then
-    log "SUCCESS: 容器运行正常"
-    docker compose ps 2>&1 | tee -a "$LOG_FILE"
+if docker compose ps 2>/dev/null | grep -q "Up"; then
+    echo "[5/5] 部署成功，容器运行正常"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 部署成功" >> "$LOG_FILE"
 else
-    log "WARNING: 容器可能未正常启动，请检查日志"
-    docker compose logs --tail=50 server 2>&1 | tee -a "$LOG_FILE"
+    echo "[5/5] WARNING: 容器可能异常，请检查: docker compose logs server"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')]" >> "$LOG_FILE"
+    docker compose logs --tail=30 server >> "$LOG_FILE" 2>&1
 fi
 
-log "========== 部署完成 =========="
+echo "========== 部署完成 =========="
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ========== 部署完成 ==========" >> "$LOG_FILE"
