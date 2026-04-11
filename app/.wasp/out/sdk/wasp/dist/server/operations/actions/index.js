@@ -6,9 +6,6 @@ import { createTask as createTask_ext } from 'wasp/src/demo-ai-app/operations';
 import { deleteTask as deleteTask_ext } from 'wasp/src/demo-ai-app/operations';
 import { updateTask as updateTask_ext } from 'wasp/src/demo-ai-app/operations';
 import { generateCheckoutSession as generateCheckoutSession_ext } from 'wasp/src/payment/operations';
-import { createFileUploadUrl as createFileUploadUrl_ext } from 'wasp/src/file-upload/operations';
-import { addFileToDb as addFileToDb_ext } from 'wasp/src/file-upload/operations';
-import { deleteFile as deleteFile_ext } from 'wasp/src/file-upload/operations';
 import { setZeroclawApiKey as setZeroclawApiKey_ext } from 'wasp/src/zeroclaw/operations';
 import { retryProvision as retryProvision_ext } from 'wasp/src/zeroclaw/operations';
 // PUBLIC API
@@ -36,21 +33,6 @@ export const updateTask = createAuthenticatedOperation(updateTask_ext, {
 // PUBLIC API
 export const generateCheckoutSession = createAuthenticatedOperation(generateCheckoutSession_ext, {
     User: prisma.user,
-});
-// PUBLIC API
-export const createFileUploadUrl = createAuthenticatedOperation(createFileUploadUrl_ext, {
-    User: prisma.user,
-    File: prisma.file,
-});
-// PUBLIC API
-export const addFileToDb = createAuthenticatedOperation(addFileToDb_ext, {
-    User: prisma.user,
-    File: prisma.file,
-});
-// PUBLIC API
-export const deleteFile = createAuthenticatedOperation(deleteFile_ext, {
-    User: prisma.user,
-    File: prisma.file,
 });
 // PUBLIC API
 export const setZeroclawApiKey = createAuthenticatedOperation(setZeroclawApiKey_ext, {

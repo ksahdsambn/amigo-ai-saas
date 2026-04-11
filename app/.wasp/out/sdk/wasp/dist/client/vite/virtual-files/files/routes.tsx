@@ -13,7 +13,6 @@ import AccountPage from './src/user/AccountPage'
 import DemoAppPage from './src/demo-ai-app/DemoAppPage'
 import PricingPage from './src/payment/PricingPage'
 import CheckoutResultPage from './src/payment/CheckoutResultPage'
-import FileUploadPage from './src/file-upload/FileUploadPage'
 import AnalyticsDashboardPage from './src/admin/dashboards/analytics/AnalyticsDashboardPage'
 import AdminUsersPage from './src/admin/dashboards/users/UsersDashboardPage'
 import AdminSettingsPage from './src/admin/elements/settings/SettingsPage'
@@ -34,7 +33,6 @@ export const routesMapping = {
   DemoAppRoute: createAuthRequiredPage(DemoAppPage),
   PricingPageRoute: PricingPage,
   CheckoutResultRoute: createAuthRequiredPage(CheckoutResultPage),
-  FileUploadRoute: createAuthRequiredPage(FileUploadPage),
   AdminRoute: createAuthRequiredPage(AnalyticsDashboardPage),
   AdminUsersRoute: createAuthRequiredPage(AdminUsersPage),
   AdminSettingsRoute: createAuthRequiredPage(AdminSettingsPage),

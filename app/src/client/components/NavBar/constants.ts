@@ -16,6 +16,5 @@ export const marketingNavigationItems: NavigationItem[] = [
 export const demoNavigationitems: NavigationItem[] = [
   { name: "ZeroClaw", to: routes.ZeroclawRoute.to },
   { name: "Agent Examples", to: routes.DemoAppRoute.to },
-  { name: "File Upload", to: routes.FileUploadRoute.to },
   ...staticNavigationItems,
 ] as const;

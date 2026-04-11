@@ -2,7 +2,6 @@ import {
   type _User,
   type _Task,
   type _GptResponse,
-  type _File,
   type _ZeroclawInstance,
   type AuthenticatedActionDefinition,
   type Payload,
@@ -65,39 +64,6 @@ export type GenerateCheckoutSession<Input extends Payload = never, Output extend
   AuthenticatedActionDefinition<
     [
       _User,
-    ],
-    Input,
-    Output
-  >
-
-// PUBLIC API
-export type CreateFileUploadUrl<Input extends Payload = never, Output extends Payload = Payload> = 
-  AuthenticatedActionDefinition<
-    [
-      _User,
-      _File,
-    ],
-    Input,
-    Output
-  >
-
-// PUBLIC API
-export type AddFileToDb<Input extends Payload = never, Output extends Payload = Payload> = 
-  AuthenticatedActionDefinition<
-    [
-      _User,
-      _File,
-    ],
-    Input,
-    Output
-  >
-
-// PUBLIC API
-export type DeleteFile<Input extends Payload = never, Output extends Payload = Payload> = 
-  AuthenticatedActionDefinition<
-    [
-      _User,
-      _File,
     ],
     Input,
     Output

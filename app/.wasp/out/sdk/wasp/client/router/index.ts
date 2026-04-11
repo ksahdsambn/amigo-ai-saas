@@ -138,19 +138,6 @@ export const routes = {
         options?.hash
       ),
   },
-  FileUploadRoute: {
-    to: "/file-upload",
-    build: (
-      options?:
-      OptionalRouteOptions
-    ) => interpolatePath(
-        
-        "/file-upload",
-        undefined,
-        options?.search,
-        options?.hash
-      ),
-  },
   AdminRoute: {
     to: "/admin",
     build: (

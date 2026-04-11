@@ -214,39 +214,6 @@ api paymentsWebhook {
 }
 //#endregion
 
-//#region File Upload
-route FileUploadRoute { path: "/file-upload", to: FileUploadPage }
-page FileUploadPage {
-  authRequired: true,
-  component: import FileUpload from "@src/file-upload/FileUploadPage"
-}
-
-action createFileUploadUrl {
-  fn: import { createFileUploadUrl } from "@src/file-upload/operations",
-  entities: [User, File]
-}
-
-action addFileToDb {
-  fn: import { addFileToDb } from "@src/file-upload/operations",
-  entities: [User, File]
-}
-
-query getAllFilesByUser {
-  fn: import { getAllFilesByUser } from "@src/file-upload/operations",
-  entities: [User, File]
-}
-
-query getDownloadFileSignedURL {
-  fn: import { getDownloadFileSignedURL } from "@src/file-upload/operations",
-  entities: [User, File]
-}
-
-action deleteFile {
-  fn: import { deleteFile } from "@src/file-upload/operations",
-  entities: [User, File]
-}
-//#endregion
-
 //#region Analytics
 query getDailyStats {
   fn: import { getDailyStats } from "@src/analytics/operations",

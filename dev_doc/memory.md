@@ -642,3 +642,168 @@ chmod +x /opt/opensaas/repo/deploy-server.sh
 │   └── ...
 ├── deploy.log                  # 部署日志
 └── backup_*/                   # 部署备份（如手动创建）
+
+---
+
+## 2026-04-12
+
+### 操作模型
+glm-5.1 (zhipuai-coding-plan/glm-5.1)
+
+### 操作内容: 修复"拆解项目"功能的 network error
+
+#### 问题诊断
+1. **前端构建产物包含错误的 API URL**
+   - 问题：`.env.client` 文件缺失，导致 `REACT_APP_API_URL` 使用默认值 `http://localhost:3001`
+   - 影响：浏览器访问 `agentkm.com` 时，API 请求发送到 `localhost:3001`，无法连接，报 "network error"
+   
+2. **NVIDIA API 调用超时**
+   - 问题：NVIDIA NIM API 调用需要约 50 秒生成响应，但 OpenResty 代理默认 `proxy_read_timeout` 为 60 秒
+   - 影响：接近超时边界，响应可能不稳定
+   - 额外问题：NVIDIA 返回的 JSON 被 `` ```json `` markdown 包裹，解析时需要清理
+
+#### 修复内容
+
+##### 1. 创建 `.env.client` 文件
+- **文件**: `app/.env.client`
+- **内容**: `REACT_APP_API_URL=https://api.agentkm.com`
+- **作用**: 确保前端构建时使用正确的 API 地址
+
+##### 2. 后端代码优化
+- **文件**: `app/src/demo-ai-app/operations.ts`
+- **变更**:
+  - 添加 `max_tokens: 2048` 限制响应长度，加快生成速度
+  - 改进 JSON 解析，自动去除 `` ```json `` markdown 包裹
+  - 添加详细错误日志便于调试
+
+##### 3. Nginx 代理配置优化
+- **位置**: `/opt/1panel/www/conf.d/api.agentkm.com.conf`
+- **变更**: 在 `location ^~ /` 块添加超时配置
+  - `proxy_connect_timeout 120s;`
+  - `proxy_send_timeout 120s;`
+  - `proxy_read_timeout 120s;`
+- **作用**: 为 NVIDIA API 调用预留足够时间，避免超时中断
+
+##### 4. 构建与部署
+- **后端**: `wasp build` — 成功
+- **前端**: `REACT_APP_API_URL=https://api.agentkm.com npx vite build` — 成功
+- **代码提交**: 1 次 commit 推送到 GitHub
+  - `48ff7d0` — fix: add max_tokens to NVIDIA API call, strip markdown fences from response, prevent timeout
+- **服务器部署**:
+  - 1Panel 计划任务自动拉取代码
+  - rsync 同步前后端构建产物
+  - `docker compose up -d --build server client` 重建容器
+  - OpenResty 配置更新并 reload
+
+#### 测试结果
+- 用户测试输入 "play soccer" 执行"拆解项目"
+- 前端正确请求 `https://api.agentkm.com/operations/generate-gpt-response`
+- 后端成功调用 NVIDIA NIM API（约 30-50 秒）
+- 返回的 JSON 被正确解析并展示
+
+#### 注意事项
+- NVIDIA API 生成时间较长，用户可能需要等待 30-50 秒
+- 如仍报网络错误，请清除浏览器缓存或使用无痕窗口测试
+- 建议将 1Panel 计划任务周期从 30 分钟改为 1 小时，减少不必要的容器重建
+
+---
+
+## 2026-04-12
+
+### 操作模型
+glm-5.1 (zhipuai-coding-plan/glm-5.1)
+
+### 操作内容：修复 Admin Dashboard 的 "data is undefined" 错误
+
+#### 故障现象
+- 登录后访问 https://agentkm.com/admin/dashboard
+- 显示 "Error" 和 `["operations/get-daily-stats"] data is undefined`
+- 页面无法加载任何统计卡片数据
+
+#### 根因分析
+通过 SSH 登录服务器排查，发现：
+
+1. **DailyStats 表为空**：`SELECT count(*) FROM "DailyStats"` 返回 0
+2. **dailyStatsJob 从未成功执行**：
+   - Job 每小时运行一次（cron: `0 * * * *`）
+   - 日志显示：`Error calculating daily stats: Failed to parse URL from undefined/v1/stats/aggregate?site_id=undefined&metrics=pageviews`
+   - 错误原因是 `PLAUSIBLE_API_KEY`、`PLAUSIBLE_SITE_ID`、`PLAUSIBLE_BASE_URL` 环境变量未配置
+
+3. **环境变量缺失**：
+   ```bash
+   docker inspect opensaas-server --format='{{json .Config.Env}}'
+   # 没有 PLAUSIBLE_* 相关变量
+   ```
+
+4. **getDailyStats 查询返回 undefined**：
+   ```
+   POST /operations/get-daily-stats 200 17.539 ms - 51
+   # 响应体是 51 字节，实际内容是 undefined 的 JSON 序列化结果
+   ```
+
+#### 修复内容
+
+##### 1. 修改 stats.ts 增加容错处理
+- **文件**: `app/src/analytics/stats.ts`
+- **变更**:
+  - 将 `getDailyPageViews()` 调用包裹在 try-catch 中
+  - 如果没有配置 Plausible，使用默认值：`totalViews=0`, `prevDayViewsChangePercent="0"`
+  - 收入获取也增加 try-catch，Stripe/LemonSqueezy/Polar 任一失败不影响整体
+  - 移除对 `getSources()` 的强依赖
+
+##### 2. 手动创建 DailyStats 种子数据
+```sql
+INSERT INTO "DailyStats" (
+  "date", "totalViews", "prevDayViewsChangePercent",
+  "userCount", "paidUserCount", "userDelta", "paidUserDelta",
+  "totalRevenue", "totalProfit"
+) VALUES (
+  DATE_TRUNC('day', NOW()), 0, '0',
+  (SELECT count(*) FROM "User"),
+  (SELECT count(*) FROM "User" WHERE "subscriptionStatus" = 'active'),
+  (SELECT count(*) FROM "User"),
+  (SELECT count(*) FROM "User" WHERE "subscriptionStatus" = 'active'),
+  0, 0
+) ON CONFLICT ("date") DO UPDATE SET
+  "userCount" = EXCLUDED."userCount",
+  "paidUserCount" = EXCLUDED."paidUserCount"
+```
+
+##### 3. 构建与部署
+- **后端**: `wasp build` — 成功
+- **前端**: `REACT_APP_API_URL=https://api.agentkm.com npx vite build` — 成功
+- **同步构建产物**:
+  ```bash
+  rsync -avz --delete \
+    app/.wasp/out/ \
+    root@185.183.98.25:/opt/opensaas/server-build/
+  rsync -avz --delete \
+    app/.wasp/out/web-app/build/ \
+    root@185.183.98.25:/opt/opensaas/client-build/
+  ```
+- **重建容器**: `docker compose build --no-cache server && docker compose up -d server client`
+
+##### 4. 验证
+- **Job 执行日志**:
+  ```
+  Plausible analytics not configured, using default page view values
+  Daily stat found for today, updating it...
+  ```
+- **数据库**: DailyStats 表已有 1 条记录
+- **API 调用**: `POST /operations/get-daily-stats` 返回 200，数据正常
+- **前端页面**: Admin Dashboard 正常显示统计卡片
+
+#### 技术要点
+- **PgBoss Job 失败处理**: 即使 Job 部分功能失败（如 Analytics API 不可用），也应记录日志但不中断整体流程
+- **默认值策略**: 对于可选的统计功能，未配置时应使用合理的默认值而不是抛出错误
+- **环境变量检查**: 在生产环境中，必须确保所有必要的 API 环境变量已正确配置
+
+#### 后续建议
+- 如果后续需要启用 Plausible Analytics，需要在 docker-compose.yml 中添加环境变量：
+  ```yaml
+  environment:
+    - PLAUSIBLE_API_KEY=xxx
+    - PLAUSIBLE_SITE_ID=xxx
+    - PLAUSIBLE_BASE_URL=https://plausible.agentkm.com
+  ```
+- 当前的实现允许在缺少 Analytics 配置的情况下正常运行，但统计数据将显示为 0

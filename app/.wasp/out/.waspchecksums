@@ -18,7 +18,7 @@
             "file",
             "db/schema.prisma"
         ],
-        "4cd53bb7b7bb80f540f388c29261a7de1b74787723721f2ca84bd302f6c9816e"
+        "306a79c4b29f0dab8ccd39a36e756f3fc22d88e8b37a21d4e1ab33aebbffd3ce"
     ],
     [
         [
@@ -445,7 +445,7 @@
             "file",
             "sdk/wasp/client/operations/actions/index.ts"
         ],
-        "e7520d54be9d5ef37a094d41772ebaf9b9f1b6b58f65e8ff0ae1a9fb7dc7d6ee"
+        "5cc140a9fda50fa6ea8357f848050bfafaeeecec508348e115f78b4cfc2ccf74"
     ],
     [
         [
@@ -494,7 +494,7 @@
             "file",
             "sdk/wasp/client/operations/queries/index.ts"
         ],
-        "00ae18d87926faf13cf4717d1ba4c404810fd1e7fbf193c5eaa123329376b864"
+        "05d6bfea89cb5653b3b77cca2d04a37c231415b12871de5cdbaf35f093d98c9a"
     ],
     [
         [
@@ -522,7 +522,7 @@
             "file",
             "sdk/wasp/client/router/index.ts"
         ],
-        "0d82038a28b373f39ae78a155e91d1ff5b090f36a0b72f1b44c2c65a30f20fea"
+        "ade013e0cebb21bc119551c5a1bd78fe3599ec2c499a6c100f2248b51a82cd2b"
     ],
     [
         [
@@ -648,7 +648,7 @@
             "file",
             "sdk/wasp/client/vite/virtual-files/files/routes.tsx"
         ],
-        "f968b12c3876effe0b948387f27ff4ceff73a25371b3849459fc1163b77df590"
+        "e32b4d92b70c70b95e46de2a5d7aa4a56e3aa649c486a757d16dae0c7f9b0362"
     ],
     [
         [
@@ -704,7 +704,7 @@
             "file",
             "sdk/wasp/entities/index.ts"
         ],
-        "8da4b0d602ce4e0a9c62a650efcc7a5f8305717f6214f763617ef7bafe340730"
+        "69f57f290bb74f894f9235faab2dd7fa8351e03fc58148a4ef4a4507afc52ffb"
     ],
     [
         [
@@ -753,14 +753,14 @@
             "file",
             "sdk/wasp/server/_types/index.ts"
         ],
-        "de05f62ab916b98f29d250766547ba1ca04915afb1dfd211043680c4ecd5cebd"
+        "3139b2444138052938722377aa9f449a070377b26a2b63e5eb160a4f7c3aaefe"
     ],
     [
         [
             "file",
             "sdk/wasp/server/_types/taggedEntities.ts"
         ],
-        "b548e6567a40960e23d182db4dbbc632e40248e8760d7ce9edff62d1fcd70d18"
+        "9e674916d41637560c6b7ce02ad61953c526f27100150d77de7fbb83b2296360"
     ],
     [
         [
@@ -942,35 +942,35 @@
             "file",
             "sdk/wasp/server/operations/actions/index.ts"
         ],
-        "8c0822a6a10f3f2e181bf5c4b3a110f763922f3c9f1ed7bbf5bf97608fc077a1"
+        "424a3fd0efeb2f0c7c72786b37930bf689618ee6fe4c449e1477bba6e590ac2a"
     ],
     [
         [
             "file",
             "sdk/wasp/server/operations/actions/types.ts"
         ],
-        "b7cf26b486e88494084545921653ffa10b12cd617404fee18ba76e47d3cfb263"
+        "5873ee54bcd0210faa9ffb08e12bc1b668b4b78755d14996dd0d0d0b3b792226"
     ],
     [
         [
             "file",
             "sdk/wasp/server/operations/index.ts"
         ],
-        "b29338508f4e4aa61ac72d377e0796f6bd917513c9f7bea72baa1162488eae5c"
+        "3547b836a7200c5df202de80e2bc47f1f9a453aa914d19c890aaeb09d02dd9ef"
     ],
     [
         [
             "file",
             "sdk/wasp/server/operations/queries/index.ts"
         ],
-        "318b714170998952316a40602fe21e9bc396ddc0e8e976856c434b22b76215ba"
+        "8e1587c23af9021dcc669ad0f7261afa0b8624eec4934cc4e6a03bc05848f4dd"
     ],
     [
         [
             "file",
             "sdk/wasp/server/operations/queries/types.ts"
         ],
-        "67ec08608e0ce20080b990bef77cd6bce75d7f831d6aff19566189dc5a4f2014"
+        "afd2bf10096f9a7a9b791a41c42af2b9ae0109e7be68c4e09c84a41f9b1c483f"
     ],
     [
         [
@@ -1166,7 +1166,7 @@
             "file",
             "sdk/wasp/src/analytics/stats.ts"
         ],
-        "08034586371807c0e20292b5bbf84a6641813f0137111ad2d2fa08335cdc3cac"
+        "b865d6099c2f95a05078fc6bca716ef0d62affe8a0cc1f23d2ee22fe44f482bf"
     ],
     [
         [
@@ -1264,7 +1264,7 @@
             "file",
             "sdk/wasp/src/client/components/NavBar/constants.ts"
         ],
-        "c26922aea0a1ca22985c1c04890e5575e7fa625b75da8ed411fd57038a98d246"
+        "aa47cb1a2c4ca7baea870d3a84863926cb7f28800c3349528642e4f391f30bf0"
     ],
     [
         [
@@ -1699,41 +1699,6 @@
             "sdk/wasp/src/demo-ai-app/schedule.ts"
         ],
         "367f26e6b414a802d93cf6bf595a0879ff1a98031af9427c42b2f868c97e6d38"
-    ],
-    [
-        [
-            "file",
-            "sdk/wasp/src/file-upload/FileUploadPage.tsx"
-        ],
-        "f6c8f540d16433d75164039c53396ccfea3316143b436781e049450dd824c1d6"
-    ],
-    [
-        [
-            "file",
-            "sdk/wasp/src/file-upload/fileUploading.ts"
-        ],
-        "8f0eef143b71bcbf9fde39feb30ece8830bec4a2fd56ce1d786e7f6b21e520c5"
-    ],
-    [
-        [
-            "file",
-            "sdk/wasp/src/file-upload/operations.ts"
-        ],
-        "0d17249311ea828ecbe694cf58b1dfdb2c09fe2a18b7b440a69fb4d243d3109a"
-    ],
-    [
-        [
-            "file",
-            "sdk/wasp/src/file-upload/s3Utils.ts"
-        ],
-        "34713312d67714c319b0b76bb903c45cfc1e55ed1f319774adea275771a9084c"
-    ],
-    [
-        [
-            "file",
-            "sdk/wasp/src/file-upload/validation.ts"
-        ],
-        "c57ec07aa375c6f5e55bf10d4bd6d7480a1cc032f4c0bd51af999e9b79ba50d9"
     ],
     [
         [
@@ -2207,30 +2172,9 @@
     [
         [
             "file",
-            "server/src/actions/addFileToDb.ts"
-        ],
-        "497c9eebc5f04b1da1878abf1b9f01f83316e35c5114dafc175f40a27b312d58"
-    ],
-    [
-        [
-            "file",
-            "server/src/actions/createFileUploadUrl.ts"
-        ],
-        "538d21a13ef0843126565d90dc0b95c92dba5cc9b07b6f82a8e675acb05e8c08"
-    ],
-    [
-        [
-            "file",
             "server/src/actions/createTask.ts"
         ],
         "4fbcdf48df09c30c2ebb3f7ccef2ad158fae6a5dcfb1a84b66f40daa8852f908"
-    ],
-    [
-        [
-            "file",
-            "server/src/actions/deleteFile.ts"
-        ],
-        "2f85c12b7058d459f5546c86274dd8f484427b00cd76631ba7f86ac33746f58a"
     ],
     [
         [
@@ -2396,13 +2340,6 @@
     [
         [
             "file",
-            "server/src/queries/getAllFilesByUser.ts"
-        ],
-        "ba26c8b4cf36076ab9db42cf6247e4e23d53c04ee9abd518ea872bf50a5cbf69"
-    ],
-    [
-        [
-            "file",
             "server/src/queries/getAllTasksByUser.ts"
         ],
         "f813a0fbd77ab99bd2ac805af0e1e2c2686a52ec6b4c09584572c05d432de505"
@@ -2420,13 +2357,6 @@
             "server/src/queries/getDailyStats.ts"
         ],
         "0b60666c5dd4365670219b3a485ffa736918b2e42200a5849d8ee6e3bc8efffa"
-    ],
-    [
-        [
-            "file",
-            "server/src/queries/getDownloadFileSignedURL.ts"
-        ],
-        "03e940bd87da75073d8fc5ba886a701e1f23f75e975118d9f273512adc7616f1"
     ],
     [
         [
@@ -2487,30 +2417,9 @@
     [
         [
             "file",
-            "server/src/routes/operations/addFileToDb.js"
-        ],
-        "941b0147c9ee69b65458231057869cf9b9fc152e081a87a755978c44d7ba1ea1"
-    ],
-    [
-        [
-            "file",
-            "server/src/routes/operations/createFileUploadUrl.js"
-        ],
-        "7b8bf4c18cc1e0d56a7d1c5e8824e7f33c6c27a9e49812f807f8c8a1db8b0f53"
-    ],
-    [
-        [
-            "file",
             "server/src/routes/operations/createTask.js"
         ],
         "dfb31f9e7dedaa8b4d722a5fef219ebb00eb09df89d190308b9772fe97317289"
-    ],
-    [
-        [
-            "file",
-            "server/src/routes/operations/deleteFile.js"
-        ],
-        "7cf1d53318b910ad1904f7af76c0e0b62e3530e4ae57fae236bbd5cd68ce5db3"
     ],
     [
         [
@@ -2536,13 +2445,6 @@
     [
         [
             "file",
-            "server/src/routes/operations/getAllFilesByUser.js"
-        ],
-        "c8b31f608fd4086518bbd1d731f1c457305ab4a5d2bb36b6a0749c746fc5d814"
-    ],
-    [
-        [
-            "file",
             "server/src/routes/operations/getAllTasksByUser.js"
         ],
         "ae828e417e390a2316e66380e281b981cd11f9a6fc3c1ba02fe2d22f4f0f6668"
@@ -2560,13 +2462,6 @@
             "server/src/routes/operations/getDailyStats.js"
         ],
         "385a076116e5b7c09efa410edca9040b8a8d2a25bb4c9b67cca9264e0efbebcd"
-    ],
-    [
-        [
-            "file",
-            "server/src/routes/operations/getDownloadFileSignedURL.js"
-        ],
-        "7c4bff3995934bac515b2996f1cb9ac03f3349935e532d3dc21f59c2dda59690"
     ],
     [
         [
@@ -2594,7 +2489,7 @@
             "file",
             "server/src/routes/operations/index.js"
         ],
-        "9b5849ce73d0f39a4c1d5ec540608e5a47e8a00488cd55081fcf890d48b1708c"
+        "671b6c0beebfc44f4dccdc8eb31285c44406398a50d91f93ba511258c6d58ce3"
     ],
     [
         [

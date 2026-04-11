@@ -41,10 +41,6 @@ export const routes = {
         to: "/checkout",
         build: (options) => interpolatePath("/checkout", undefined, options?.search, options?.hash),
     },
-    FileUploadRoute: {
-        to: "/file-upload",
-        build: (options) => interpolatePath("/file-upload", undefined, options?.search, options?.hash),
-    },
     AdminRoute: {
         to: "/admin",
         build: (options) => interpolatePath("/admin", undefined, options?.search, options?.hash),

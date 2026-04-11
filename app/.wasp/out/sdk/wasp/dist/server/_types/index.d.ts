@@ -22,7 +22,6 @@ export type PrismaDelegate = {
     "User": typeof prisma.user;
     "GptResponse": typeof prisma.gptResponse;
     "Task": typeof prisma.task;
-    "File": typeof prisma.file;
     "DailyStats": typeof prisma.dailyStats;
     "PageViewSource": typeof prisma.pageViewSource;
     "Logs": typeof prisma.logs;

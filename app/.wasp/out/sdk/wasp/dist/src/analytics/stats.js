@@ -21,8 +21,6 @@ export const calculateDailyStats = async (_args, context) => {
             },
         });
         const userCount = await context.entities.User.count({});
-        // users can have paid but canceled subscriptions which terminate at the end of the period
-        // we don't want to count those users as current paying users
         const paidUserCount = await context.entities.User.count({
             where: {
                 subscriptionStatus: SubscriptionStatus.Active,
@@ -34,21 +32,41 @@ export const calculateDailyStats = async (_args, context) => {
             userDelta -= yesterdaysStats.userCount;
             paidUserDelta -= yesterdaysStats.paidUserCount;
         }
-        let totalRevenue;
-        switch (paymentProcessor.id) {
-            case "stripe":
-                totalRevenue = await fetchTotalStripeRevenue();
-                break;
-            case "lemonsqueezy":
-                totalRevenue = await fetchTotalLemonSqueezyRevenue();
-                break;
-            case "polar":
-                totalRevenue = await fetchTotalPolarRevenue();
-                break;
-            default:
-                assertUnreachable(paymentProcessor.id);
+        let totalRevenue = 0;
+        try {
+            switch (paymentProcessor.id) {
+                case "stripe":
+                    totalRevenue = await fetchTotalStripeRevenue();
+                    break;
+                case "lemonsqueezy":
+                    totalRevenue = await fetchTotalLemonSqueezyRevenue();
+                    break;
+                case "polar":
+                    totalRevenue = await fetchTotalPolarRevenue();
+                    break;
+                default:
+                    assertUnreachable(paymentProcessor.id);
+            }
         }
-        const { totalViews, prevDayViewsChangePercent } = await getDailyPageViews();
+        catch (revenueError) {
+            console.error("Error fetching revenue, using 0: ", revenueError?.message);
+        }
+        let totalViews = 0;
+        let prevDayViewsChangePercent = "0";
+        const hasPlausibleConfig = process.env.PLAUSIBLE_BASE_URL && process.env.PLAUSIBLE_SITE_ID;
+        if (hasPlausibleConfig) {
+            try {
+                const viewsResult = await getDailyPageViews();
+                totalViews = viewsResult.totalViews;
+                prevDayViewsChangePercent = viewsResult.prevDayViewsChangePercent;
+            }
+            catch (viewsError) {
+                console.error("Error fetching page views, using defaults: ", viewsError?.message);
+            }
+        }
+        else {
+            console.log("Plausible analytics not configured, using default page view values");
+        }
         let dailyStats = await context.entities.DailyStats.findUnique({
             where: {
                 date: nowUTC,
@@ -86,40 +104,50 @@ export const calculateDailyStats = async (_args, context) => {
                 },
             });
         }
-        const sources = await getSources();
-        for (const source of sources) {
-            let visitors = source.visitors;
-            if (typeof source.visitors !== "number") {
-                visitors = parseInt(source.visitors);
+        if (hasPlausibleConfig) {
+            try {
+                const sources = await getSources();
+                for (const source of sources) {
+                    let visitors = source.visitors;
+                    if (typeof source.visitors !== "number") {
+                        visitors = parseInt(source.visitors);
+                    }
+                    await context.entities.PageViewSource.upsert({
+                        where: {
+                            date_name: {
+                                date: nowUTC,
+                                name: source.source,
+                            },
+                        },
+                        create: {
+                            date: nowUTC,
+                            name: source.source,
+                            visitors,
+                            dailyStatsId: dailyStats.id,
+                        },
+                        update: {
+                            visitors,
+                        },
+                    });
+                }
             }
-            await context.entities.PageViewSource.upsert({
-                where: {
-                    date_name: {
-                        date: nowUTC,
-                        name: source.source,
-                    },
-                },
-                create: {
-                    date: nowUTC,
-                    name: source.source,
-                    visitors,
-                    dailyStatsId: dailyStats.id,
-                },
-                update: {
-                    visitors,
-                },
-            });
+            catch (sourcesError) {
+                console.error("Error fetching page view sources: ", sourcesError?.message);
+            }
         }
         console.table({ dailyStats });
     }
     catch (error) {
         console.error("Error calculating daily stats: ", error);
-        await context.entities.Logs.create({
-            data: {
-                message: `Error calculating daily stats: ${error?.message}`,
-                level: "job-error",
-            },
-        });
+        try {
+            await context.entities.Logs.create({
+                data: {
+                    message: `Error calculating daily stats: ${error?.message}`,
+                    level: "job-error",
+                },
+            });
+        }
+        catch (_) { }
     }
 };
 async function fetchTotalStripeRevenue() {

@@ -12,7 +12,6 @@ export const marketingNavigationItems = [
 export const demoNavigationitems = [
     { name: "ZeroClaw", to: routes.ZeroclawRoute.to },
     { name: "Agent Examples", to: routes.DemoAppRoute.to },
-    { name: "File Upload", to: routes.FileUploadRoute.to },
     ...staticNavigationItems,
 ];
 //# sourceMappingURL=constants.js.map

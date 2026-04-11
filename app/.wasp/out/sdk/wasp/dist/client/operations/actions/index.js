@@ -12,12 +12,6 @@ export const updateTask = createAction('operations/update-task', ['Task']);
 // PUBLIC API
 export const generateCheckoutSession = createAction('operations/generate-checkout-session', ['User']);
 // PUBLIC API
-export const createFileUploadUrl = createAction('operations/create-file-upload-url', ['User', 'File']);
-// PUBLIC API
-export const addFileToDb = createAction('operations/add-file-to-db', ['User', 'File']);
-// PUBLIC API
-export const deleteFile = createAction('operations/delete-file', ['User', 'File']);
-// PUBLIC API
 export const setZeroclawApiKey = createAction('operations/set-zeroclaw-api-key', ['User', 'ZeroclawInstance']);
 // PUBLIC API
 export const retryProvision = createAction('operations/retry-provision', ['User', 'ZeroclawInstance']);

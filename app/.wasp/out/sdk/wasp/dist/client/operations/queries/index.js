@@ -8,10 +8,6 @@ export const getAllTasksByUser = createQuery('operations/get-all-tasks-by-user',
 // PUBLIC API
 export const getCustomerPortalUrl = createQuery('operations/get-customer-portal-url', ['User']);
 // PUBLIC API
-export const getAllFilesByUser = createQuery('operations/get-all-files-by-user', ['User', 'File']);
-// PUBLIC API
-export const getDownloadFileSignedURL = createQuery('operations/get-download-file-signed-url', ['User', 'File']);
-// PUBLIC API
 export const getDailyStats = createQuery('operations/get-daily-stats', ['User', 'DailyStats']);
 // PUBLIC API
 export const getZeroclawInstance = createQuery('operations/get-zeroclaw-instance', ['User', 'ZeroclawInstance']);

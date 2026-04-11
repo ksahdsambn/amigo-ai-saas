@@ -4,8 +4,6 @@ import { getPaginatedUsers as getPaginatedUsers_ext } from 'wasp/src/user/operat
 import { getGptResponses as getGptResponses_ext } from 'wasp/src/demo-ai-app/operations';
 import { getAllTasksByUser as getAllTasksByUser_ext } from 'wasp/src/demo-ai-app/operations';
 import { getCustomerPortalUrl as getCustomerPortalUrl_ext } from 'wasp/src/payment/operations';
-import { getAllFilesByUser as getAllFilesByUser_ext } from 'wasp/src/file-upload/operations';
-import { getDownloadFileSignedURL as getDownloadFileSignedURL_ext } from 'wasp/src/file-upload/operations';
 import { getDailyStats as getDailyStats_ext } from 'wasp/src/analytics/operations';
 import { getZeroclawInstance as getZeroclawInstance_ext } from 'wasp/src/zeroclaw/operations';
 // PUBLIC API
@@ -24,16 +22,6 @@ export const getAllTasksByUser = createAuthenticatedOperation(getAllTasksByUser_
 // PUBLIC API
 export const getCustomerPortalUrl = createAuthenticatedOperation(getCustomerPortalUrl_ext, {
     User: prisma.user,
-});
-// PUBLIC API
-export const getAllFilesByUser = createAuthenticatedOperation(getAllFilesByUser_ext, {
-    User: prisma.user,
-    File: prisma.file,
-});
-// PUBLIC API
-export const getDownloadFileSignedURL = createAuthenticatedOperation(getDownloadFileSignedURL_ext, {
-    User: prisma.user,
-    File: prisma.file,
 });
 // PUBLIC API
 export const getDailyStats = createAuthenticatedOperation(getDailyStats_ext, {

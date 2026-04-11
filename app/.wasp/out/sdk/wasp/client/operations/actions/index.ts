@@ -5,9 +5,6 @@ import { CreateTask_ext } from 'wasp/server/operations/actions'
 import { DeleteTask_ext } from 'wasp/server/operations/actions'
 import { UpdateTask_ext } from 'wasp/server/operations/actions'
 import { GenerateCheckoutSession_ext } from 'wasp/server/operations/actions'
-import { CreateFileUploadUrl_ext } from 'wasp/server/operations/actions'
-import { AddFileToDb_ext } from 'wasp/server/operations/actions'
-import { DeleteFile_ext } from 'wasp/server/operations/actions'
 import { SetZeroclawApiKey_ext } from 'wasp/server/operations/actions'
 import { RetryProvision_ext } from 'wasp/server/operations/actions'
 
@@ -45,24 +42,6 @@ export const updateTask: ActionFor<UpdateTask_ext> = createAction<UpdateTask_ext
 export const generateCheckoutSession: ActionFor<GenerateCheckoutSession_ext> = createAction<GenerateCheckoutSession_ext>(
   'operations/generate-checkout-session',
   ['User'],
-)
-
-// PUBLIC API
-export const createFileUploadUrl: ActionFor<CreateFileUploadUrl_ext> = createAction<CreateFileUploadUrl_ext>(
-  'operations/create-file-upload-url',
-  ['User', 'File'],
-)
-
-// PUBLIC API
-export const addFileToDb: ActionFor<AddFileToDb_ext> = createAction<AddFileToDb_ext>(
-  'operations/add-file-to-db',
-  ['User', 'File'],
-)
-
-// PUBLIC API
-export const deleteFile: ActionFor<DeleteFile_ext> = createAction<DeleteFile_ext>(
-  'operations/delete-file',
-  ['User', 'File'],
 )
 
 // PUBLIC API

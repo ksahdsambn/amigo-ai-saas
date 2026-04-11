@@ -10,8 +10,6 @@ import { getPaginatedUsers as getPaginatedUsers_ext } from 'wasp/src/user/operat
 import { getGptResponses as getGptResponses_ext } from 'wasp/src/demo-ai-app/operations'
 import { getAllTasksByUser as getAllTasksByUser_ext } from 'wasp/src/demo-ai-app/operations'
 import { getCustomerPortalUrl as getCustomerPortalUrl_ext } from 'wasp/src/payment/operations'
-import { getAllFilesByUser as getAllFilesByUser_ext } from 'wasp/src/file-upload/operations'
-import { getDownloadFileSignedURL as getDownloadFileSignedURL_ext } from 'wasp/src/file-upload/operations'
 import { getDailyStats as getDailyStats_ext } from 'wasp/src/analytics/operations'
 import { getZeroclawInstance as getZeroclawInstance_ext } from 'wasp/src/zeroclaw/operations'
 
@@ -64,34 +62,6 @@ export const getCustomerPortalUrl: AuthenticatedOperationFor<GetCustomerPortalUr
     getCustomerPortalUrl_ext,
     {
       User: prisma.user,
-    },
-  )
-
-
-// PRIVATE API
-export type GetAllFilesByUser_ext = typeof getAllFilesByUser_ext
-
-// PUBLIC API
-export const getAllFilesByUser: AuthenticatedOperationFor<GetAllFilesByUser_ext> =
-  createAuthenticatedOperation(
-    getAllFilesByUser_ext,
-    {
-      User: prisma.user,
-      File: prisma.file,
-    },
-  )
-
-
-// PRIVATE API
-export type GetDownloadFileSignedURL_ext = typeof getDownloadFileSignedURL_ext
-
-// PUBLIC API
-export const getDownloadFileSignedURL: AuthenticatedOperationFor<GetDownloadFileSignedURL_ext> =
-  createAuthenticatedOperation(
-    getDownloadFileSignedURL_ext,
-    {
-      User: prisma.user,
-      File: prisma.file,
     },
   )
 

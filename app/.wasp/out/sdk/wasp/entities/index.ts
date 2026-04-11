@@ -2,7 +2,6 @@ import {
   type User,
   type GptResponse,
   type Task,
-  type File,
   type DailyStats,
   type PageViewSource,
   type Logs,
@@ -14,7 +13,6 @@ export {
   type User,
   type GptResponse,
   type Task,
-  type File,
   type DailyStats,
   type PageViewSource,
   type Logs,
@@ -28,7 +26,6 @@ export type Entity =
   | User
   | GptResponse
   | Task
-  | File
   | DailyStats
   | PageViewSource
   | Logs
@@ -40,7 +37,6 @@ export type EntityName =
   | "User"
   | "GptResponse"
   | "Task"
-  | "File"
   | "DailyStats"
   | "PageViewSource"
   | "Logs"
