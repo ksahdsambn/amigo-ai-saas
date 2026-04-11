@@ -88,12 +88,14 @@ export const makeStripePayment = async ({
   test,
   page,
   planId,
+  billingCycle = "monthly",
 }: {
   test: any;
   page: Page;
-  planId: "hobby" | "pro" | "credits10";
+  planId: "hobby" | "pro";
+  billingCycle?: "monthly" | "yearly";
 }) => {
-  test.slow(); // Stripe payments take a long time to confirm and can cause tests to fail so we use a longer timeout
+  test.slow();
 
   await page.goto("/pricing");
   await page.waitForURL("**/pricing");
@@ -113,8 +115,6 @@ export const makeStripePayment = async ({
   await page.getByPlaceholder("Full name on card").fill("Test User");
   const countrySelect = page.getByLabel("Country or region");
   await countrySelect.selectOption("Germany");
-  // This is a weird edge case where the `payBtn` assertion tests pass, but the button click still isn't registered.
-  // That's why we wait for stripe responses below to finish loading before clicking the button.
   await page.waitForResponse(
     (response) =>
       response.url().includes("trusted-types-checker") &&
@@ -127,11 +127,7 @@ export const makeStripePayment = async ({
 
   await page.waitForURL("**/checkout?status=success");
   await page.waitForURL("**/account");
-  if (planId === "credits10") {
-    await expect(page.getByText("13 credits")).toBeVisible();
-  } else {
-    await expect(page.getByText(planId)).toBeVisible();
-  }
+  await expect(page.getByText(planId)).toBeVisible();
 };
 
 export const acceptAllCookies = async (page: Page) => {

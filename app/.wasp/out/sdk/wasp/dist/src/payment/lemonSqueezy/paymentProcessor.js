@@ -7,12 +7,12 @@ lemonSqueezySetup({
 });
 export const lemonSqueezyPaymentProcessor = {
     id: "lemonsqueezy",
-    createCheckoutSession: async ({ userId, userEmail, paymentPlan, }) => {
+    createCheckoutSession: async ({ userId, userEmail, paymentPlan, billingCycle, }) => {
         if (!userId)
             throw new Error("User ID needed to create Lemon Squeezy Checkout Session");
         const session = await createLemonSqueezyCheckoutSession({
             storeId: requireNodeEnvVar("LEMONSQUEEZY_STORE_ID"),
-            variantId: paymentPlan.getPaymentProcessorPlanId(),
+            variantId: paymentPlan.getPaymentProcessorPlanId(billingCycle),
             userEmail,
             userId,
         });

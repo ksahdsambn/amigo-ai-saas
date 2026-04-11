@@ -20,6 +20,7 @@ export const polarPaymentProcessor: PaymentProcessor = {
     userId,
     userEmail,
     paymentPlan,
+    billingCycle,
     prismaUserDelegate,
   }: CreateCheckoutSessionArgs) => {
     const customer = await ensurePolarCustomer(userId, userEmail);
@@ -30,7 +31,7 @@ export const polarPaymentProcessor: PaymentProcessor = {
     );
 
     const checkoutSession = await createPolarCheckoutSession({
-      productId: paymentPlan.getPaymentProcessorPlanId(),
+      productId: paymentPlan.getPaymentProcessorPlanId(billingCycle),
       customerId: customer.id,
     });
 

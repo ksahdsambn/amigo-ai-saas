@@ -1,6 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
-  acceptAllCookies,
   createRandomUser,
   logUserIn,
   makeStripePayment,
@@ -76,10 +75,4 @@ test("User should see the Manage Subscription button after payment", async () =>
   await expect(newTab).toHaveURL(/^https:\/\/billing\.stripe\.com\//);
 });
 
-test("Make test payment with Stripe for 10 credits", async () => {
-  await createAndLogInNewUser();
-  await acceptAllCookies(page); // Clear the cookie consent modal so it doesn't interfere with the payment
-  const planId = "credits10";
-  await page.goto("/");
-  await makeStripePayment({ test, page, planId });
-});
+

@@ -4,11 +4,11 @@ import { polarClient } from "./polarClient";
 import { polarMiddlewareConfigFn, polarWebhook } from "./webhook";
 export const polarPaymentProcessor = {
     id: "polar",
-    createCheckoutSession: async ({ userId, userEmail, paymentPlan, prismaUserDelegate, }) => {
+    createCheckoutSession: async ({ userId, userEmail, paymentPlan, billingCycle, prismaUserDelegate, }) => {
         const customer = await ensurePolarCustomer(userId, userEmail);
         await updateUserPaymentProcessorUserId({ userId, paymentProcessorUserId: customer.id }, prismaUserDelegate);
         const checkoutSession = await createPolarCheckoutSession({
-            productId: paymentPlan.getPaymentProcessorPlanId(),
+            productId: paymentPlan.getPaymentProcessorPlanId(billingCycle),
             customerId: customer.id,
         });
         return {

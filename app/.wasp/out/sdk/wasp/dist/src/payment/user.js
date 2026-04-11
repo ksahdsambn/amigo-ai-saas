@@ -31,15 +31,4 @@ export function updateUserSubscription({ paymentProcessorUserId, paymentPlanId, 
         },
     });
 }
-export function updateUserCredits({ paymentProcessorUserId, numOfCreditsPurchased, datePaid, }, userDelegate) {
-    return userDelegate.update({
-        where: {
-            paymentProcessorUserId,
-        },
-        data: {
-            credits: { increment: numOfCreditsPurchased },
-            datePaid,
-        },
-    });
-}
 //# sourceMappingURL=user.js.map

@@ -1,12 +1,9 @@
-import Stripe from "stripe";
 import { config } from "wasp/server";
-import { assertUnreachable } from "../../shared/utils";
 import type {
   CreateCheckoutSessionArgs,
   FetchCustomerPortalUrlArgs,
   PaymentProcessor,
 } from "../paymentProcessor";
-import type { PaymentPlanEffect } from "../plans";
 import {
   fetchUserPaymentProcessorUserId,
   updateUserPaymentProcessorUserId,
@@ -24,6 +21,7 @@ export const stripePaymentProcessor: PaymentProcessor = {
     userId,
     userEmail,
     paymentPlan,
+    billingCycle,
     prismaUserDelegate,
   }: CreateCheckoutSessionArgs) => {
     const customer = await ensureStripeCustomer(userEmail);
@@ -35,8 +33,9 @@ export const stripePaymentProcessor: PaymentProcessor = {
 
     const checkoutSession = await createStripeCheckoutSession({
       customerId: customer.id,
-      priceId: paymentPlan.getPaymentProcessorPlanId(),
-      mode: paymentPlanEffectToStripeCheckoutSessionMode(paymentPlan.effect),
+      priceId: paymentPlan.getPaymentProcessorPlanId(billingCycle),
+      mode: "subscription",
+      trialPeriodDays: paymentPlan.trialDays,
     });
 
     if (!checkoutSession.url) {
@@ -76,16 +75,3 @@ export const stripePaymentProcessor: PaymentProcessor = {
   webhook: stripeWebhook,
   webhookMiddlewareConfigFn: stripeMiddlewareConfigFn,
 };
-
-function paymentPlanEffectToStripeCheckoutSessionMode({
-  kind,
-}: PaymentPlanEffect): Stripe.Checkout.Session.Mode {
-  switch (kind) {
-    case "subscription":
-      return "subscription";
-    case "credits":
-      return "payment";
-    default:
-      assertUnreachable(kind);
-  }
-}

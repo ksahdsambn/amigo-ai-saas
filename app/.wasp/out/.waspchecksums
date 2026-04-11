@@ -1831,7 +1831,7 @@
             "file",
             "sdk/wasp/src/payment/PricingPage.tsx"
         ],
-        "e6bab6aea83aef25005a4d0fa892d10161862d9ec06537bd91fe17a3a2bdd834"
+        "606f1c5876d901cf3bdb8fa93f496fa62ecbd0515b12dffaf530df55d67c2c94"
     ],
     [
         [
@@ -1859,14 +1859,14 @@
             "file",
             "sdk/wasp/src/payment/lemonSqueezy/paymentProcessor.ts"
         ],
-        "1ddeeab2c38c2d20b77aa38c594e6a93e04dd3df1fc9f88b300e59f5074b4480"
+        "bda7dae32dbc7e2db870be09de703d373aa477f29425eda0a2c10bbce9708f5a"
     ],
     [
         [
             "file",
             "sdk/wasp/src/payment/lemonSqueezy/webhook.ts"
         ],
-        "8c3e676abfb1ec4bda0fb8c9b85fe910a150c592ade09fb3e02a755f34f19706"
+        "c328f1f2d78ad61008c8a10d40423876da94ae1870f3f3557f8f8016e4b735af"
     ],
     [
         [
@@ -1880,21 +1880,21 @@
             "file",
             "sdk/wasp/src/payment/operations.ts"
         ],
-        "c87443e74557a6cdaed4cfe3b2f3b2bed5a85fc842bdd1eb01e1a9349c76f039"
+        "bde0f3b668768805427c43b4764501d0d82ac3949e65665fa4a8dc88b0a48ebc"
     ],
     [
         [
             "file",
             "sdk/wasp/src/payment/paymentProcessor.ts"
         ],
-        "c63384a8a957195ceb2a2b568d8ea2fd398b63f94c1ae00684fcc5ebb4418d4b"
+        "5118ef2370f8f6cda07836d4269295861af55a2ea1e5adebff4c9412823781c7"
     ],
     [
         [
             "file",
             "sdk/wasp/src/payment/plans.ts"
         ],
-        "255bad66ffc62fcdc7977d915bb390817977309c3931e3312b5f00156384488f"
+        "630afd0c22165ceab3487c26deadabfe8c8611b1941a6d25a2130ba80d67baa5"
     ],
     [
         [
@@ -1908,7 +1908,7 @@
             "file",
             "sdk/wasp/src/payment/polar/paymentProcessor.ts"
         ],
-        "3e1c35f90b122f030a94a42fc71ac0d93fd1aad33fc2249f42faa0da5f1cbfbb"
+        "e3997bcce89dffe4704e41db4e70d837d3edc71e65584b061b6e44d2b290a3d1"
     ],
     [
         [
@@ -1922,21 +1922,21 @@
             "file",
             "sdk/wasp/src/payment/polar/webhook.ts"
         ],
-        "0893b25e18fa7ae928267fba67f244428ad37c49fe3e62296a29d6a290a9bb39"
+        "535f4cb02a49379a75b7776cadf4a8bdb45aff63ef0c80072060e2fb5cf4c428"
     ],
     [
         [
             "file",
             "sdk/wasp/src/payment/stripe/checkoutUtils.ts"
         ],
-        "ab9c1a40b5f6d8e37871d28da29ec87eed4e415e9356469b512c9c2477e9043d"
+        "8f4d8057c1a6fb0460e8657cef98ef9a0d2ad03ddfdf40473374d3f96083186a"
     ],
     [
         [
             "file",
             "sdk/wasp/src/payment/stripe/paymentProcessor.ts"
         ],
-        "3ed5af746888f8c4be0db8fb47fc6d6b6f93a04082713f3a12044dd81be1d1dc"
+        "9c869d05dc6cb50da3f98e8edccdf5dc581d1c098d33217240fd65edd9aaf8fe"
     ],
     [
         [
@@ -1950,14 +1950,14 @@
             "file",
             "sdk/wasp/src/payment/stripe/webhook.ts"
         ],
-        "6c718bfa789770eefd2a4cc7c5f4f249fb4f1a1c30c25d8efa60fa39546ff2f3"
+        "f5e01cdb656ebfd8b170fc5b80837d8ba86dfd9a369e8a551df75bf192227d2f"
     ],
     [
         [
             "file",
             "sdk/wasp/src/payment/user.ts"
         ],
-        "a68b002e9871c0847da5ee429ab19039e544a0b45158b9b92403f8bc87e4772f"
+        "9b8d04e0c5123a7cc913795adce25bae82a542217d8c4bfe1dd1008f134a9c78"
     ],
     [
         [
@@ -2006,7 +2006,7 @@
             "file",
             "sdk/wasp/src/user/AccountPage.tsx"
         ],
-        "650acf64410aa87290a58983ed2ef4ee3db1311ba4b62c0a51bff66f5f4cf154"
+        "332c42abcb6c2ed8b7aa0d4a28fe95eb067d93e557df2fddaee2d3570b01a9a5"
     ],
     [
         [

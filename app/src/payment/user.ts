@@ -64,28 +64,3 @@ export function updateUserSubscription(
     },
   });
 }
-
-interface UpdateUserCreditsArgs {
-  paymentProcessorUserId: NonNullable<User["paymentProcessorUserId"]>;
-  numOfCreditsPurchased: number;
-  datePaid: Date;
-}
-
-export function updateUserCredits(
-  {
-    paymentProcessorUserId,
-    numOfCreditsPurchased,
-    datePaid,
-  }: UpdateUserCreditsArgs,
-  userDelegate: PrismaClient["user"],
-): Promise<User> {
-  return userDelegate.update({
-    where: {
-      paymentProcessorUserId,
-    },
-    data: {
-      credits: { increment: numOfCreditsPurchased },
-      datePaid,
-    },
-  });
-}

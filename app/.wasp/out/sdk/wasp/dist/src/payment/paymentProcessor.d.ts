@@ -2,11 +2,12 @@ import { PrismaClient } from "@prisma/client";
 import { User } from "wasp/entities";
 import type { MiddlewareConfigFn } from "wasp/server";
 import type { PaymentsWebhook } from "wasp/server/api";
-import type { PaymentPlan } from "./plans";
+import type { BillingCycle, PaymentPlan } from "./plans";
 export interface CreateCheckoutSessionArgs {
     userId: User["id"];
     userEmail: NonNullable<User["email"]>;
     paymentPlan: PaymentPlan;
+    billingCycle: BillingCycle;
     prismaUserDelegate: PrismaClient["user"];
 }
 export interface FetchCustomerPortalUrlArgs {

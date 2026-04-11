@@ -5,8 +5,8 @@ import { provisionZeroclawJob } from "wasp/server/jobs";
 import { requireNodeEnvVar } from "../../server/utils";
 import { assertUnreachable } from "../../shared/utils";
 import { UnhandledWebhookEventError } from "../errors";
-import { getPaymentPlanIdByPaymentProcessorPlanId, PaymentPlanId, paymentPlans, SubscriptionStatus, } from "../plans";
-import { updateUserCredits, updateUserSubscription } from "../user";
+import { getPaymentPlanIdByPaymentProcessorPlanId, PaymentPlanId, SubscriptionStatus, } from "../plans";
+import { updateUserSubscription } from "../user";
 import { deprovisionInstance } from "../../zeroclaw/provisioning";
 import { stripeClient } from "./stripeClient";
 /**
@@ -78,13 +78,6 @@ async function handleInvoicePaid(event, prismaUserDelegate) {
     const invoicePaidAtDate = getInvoicePaidAtDate(invoice);
     const paymentPlanId = getPaymentPlanIdByPaymentProcessorPlanId(getInvoicePriceId(invoice));
     switch (paymentPlanId) {
-        case PaymentPlanId.Credits10:
-            await updateUserCredits({
-                paymentProcessorUserId: customerId,
-                datePaid: invoicePaidAtDate,
-                numOfCreditsPurchased: paymentPlans[paymentPlanId].effect.amount,
-            }, prismaUserDelegate);
-            break;
         case PaymentPlanId.Pro:
         case PaymentPlanId.Hobby: {
             const user = await updateUserSubscription({

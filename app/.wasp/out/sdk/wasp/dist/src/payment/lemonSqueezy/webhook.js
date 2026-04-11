@@ -86,8 +86,7 @@ async function handleOrderCreated(data, userId, prismaUserDelegate) {
     });
     let numOfCreditsPurchased = undefined;
     let datePaid = undefined;
-    if (status === "paid" && plan.effect.kind === "credits") {
-        numOfCreditsPurchased = plan.effect.amount;
+    if (status === "paid") {
         datePaid = new Date();
     }
     await updateUserLemonSqueezyPaymentDetails({
@@ -172,7 +171,7 @@ async function fetchUserCustomerPortalUrl({ lemonSqueezyId, }) {
     return customerPortalUrl;
 }
 function getPlanIdByVariantId(variantId) {
-    const planId = Object.values(PaymentPlanId).find((planId) => paymentPlans[planId].getPaymentProcessorPlanId() === variantId);
+    const planId = Object.values(PaymentPlanId).find((planId) => paymentPlans[planId].getPaymentProcessorPlanId("monthly") === variantId);
     if (!planId) {
         throw new Error(`No plan with LemonSqueezy variant id ${variantId}`);
     }

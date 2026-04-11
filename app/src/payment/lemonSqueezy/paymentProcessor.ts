@@ -18,6 +18,7 @@ export const lemonSqueezyPaymentProcessor: PaymentProcessor = {
     userId,
     userEmail,
     paymentPlan,
+    billingCycle,
   }: CreateCheckoutSessionArgs) => {
     if (!userId)
       throw new Error(
@@ -25,7 +26,7 @@ export const lemonSqueezyPaymentProcessor: PaymentProcessor = {
       );
     const session = await createLemonSqueezyCheckoutSession({
       storeId: requireNodeEnvVar("LEMONSQUEEZY_STORE_ID"),
-      variantId: paymentPlan.getPaymentProcessorPlanId(),
+      variantId: paymentPlan.getPaymentProcessorPlanId(billingCycle),
       userEmail,
       userId,
     });

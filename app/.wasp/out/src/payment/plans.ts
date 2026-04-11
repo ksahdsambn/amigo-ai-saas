@@ -10,38 +10,40 @@ export enum SubscriptionStatus {
 export enum PaymentPlanId {
   Hobby = "hobby",
   Pro = "pro",
-  Credits10 = "credits10",
 }
+
+export type BillingCycle = "monthly" | "yearly";
 
 export interface PaymentPlan {
-  /**
-   * Returns the id under which this payment plan is identified on your payment processor.
-   *
-   * E.g. price id on Stripe, or variant id on LemonSqueezy.
-   */
-  getPaymentProcessorPlanId: () => string;
+  getPaymentProcessorPlanId: (billingCycle: BillingCycle) => string;
   effect: PaymentPlanEffect;
+  trialDays: number;
 }
 
-export type PaymentPlanEffect =
-  | { kind: "subscription" }
-  | { kind: "credits"; amount: number };
+export type PaymentPlanEffect = { kind: "subscription" };
 
 export const paymentPlans = {
   [PaymentPlanId.Hobby]: {
-    getPaymentProcessorPlanId: () =>
-      requireNodeEnvVar("PAYMENTS_HOBBY_SUBSCRIPTION_PLAN_ID"),
+    getPaymentProcessorPlanId: (billingCycle: BillingCycle) => {
+      const envVar =
+        billingCycle === "monthly"
+          ? "PAYMENTS_HOBBY_MONTHLY_PLAN_ID"
+          : "PAYMENTS_HOBBY_YEARLY_PLAN_ID";
+      return requireNodeEnvVar(envVar);
+    },
     effect: { kind: "subscription" },
+    trialDays: 30,
   },
   [PaymentPlanId.Pro]: {
-    getPaymentProcessorPlanId: () =>
-      requireNodeEnvVar("PAYMENTS_PRO_SUBSCRIPTION_PLAN_ID"),
+    getPaymentProcessorPlanId: (billingCycle: BillingCycle) => {
+      const envVar =
+        billingCycle === "monthly"
+          ? "PAYMENTS_PRO_MONTHLY_PLAN_ID"
+          : "PAYMENTS_PRO_YEARLY_PLAN_ID";
+      return requireNodeEnvVar(envVar);
+    },
     effect: { kind: "subscription" },
-  },
-  [PaymentPlanId.Credits10]: {
-    getPaymentProcessorPlanId: () =>
-      requireNodeEnvVar("PAYMENTS_CREDITS_10_PLAN_ID"),
-    effect: { kind: "credits", amount: 10 },
+    trialDays: 14,
   },
 } as const satisfies Record<PaymentPlanId, PaymentPlan>;
 
@@ -49,7 +51,6 @@ export function prettyPaymentPlanName(planId: PaymentPlanId): string {
   const planToName: Record<PaymentPlanId, string> = {
     [PaymentPlanId.Hobby]: "Hobby",
     [PaymentPlanId.Pro]: "Pro",
-    [PaymentPlanId.Credits10]: "10 Credits",
   };
   return planToName[planId];
 }
@@ -68,21 +69,16 @@ export function getSubscriptionPaymentPlanIds(): PaymentPlanId[] {
   );
 }
 
-/**
- * Returns Open SaaS `PaymentPlanId` for some payment provider's plan ID.
- * 
- * Different payment providers track plan ID in different ways.
- * e.g. Stripe price ID, Polar product ID...
- */
 export function getPaymentPlanIdByPaymentProcessorPlanId(
   paymentProcessorPlanId: string,
 ): PaymentPlanId {
   for (const [planId, plan] of Object.entries(paymentPlans)) {
-    if (plan.getPaymentProcessorPlanId() === paymentProcessorPlanId) {
-      return planId as PaymentPlanId;
+    for (const cycle of ["monthly", "yearly"] as BillingCycle[]) {
+      if (plan.getPaymentProcessorPlanId(cycle) === paymentProcessorPlanId) {
+        return planId as PaymentPlanId;
+      }
     }
   }
-
   throw new Error(
     `Unknown payment processor plan ID: ${paymentProcessorPlanId}`,
   );

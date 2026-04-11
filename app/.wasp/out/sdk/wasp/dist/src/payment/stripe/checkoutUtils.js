@@ -1,9 +1,5 @@
 import { config } from "wasp/server";
 import { stripeClient } from "./stripeClient";
-/**
- * Returns a Stripe customer for the given User email, creating a customer if none exist.
- * Implements email uniqueness logic since Stripe doesn't enforce unique emails.
- */
 export async function ensureStripeCustomer(userEmail) {
     const customers = await stripeClient.customers.list({
         email: userEmail,
@@ -17,7 +13,7 @@ export async function ensureStripeCustomer(userEmail) {
         return customers.data[0];
     }
 }
-export function createStripeCheckoutSession({ priceId, customerId, mode, }) {
+export function createStripeCheckoutSession({ priceId, customerId, mode, trialPeriodDays, }) {
     return stripeClient.checkout.sessions.create({
         customer: customerId,
         line_items: [
@@ -34,19 +30,9 @@ export function createStripeCheckoutSession({ priceId, customerId, mode, }) {
         customer_update: {
             address: "auto",
         },
-        invoice_creation: getInvoiceCreationConfig(mode),
+        subscription_data: mode === "subscription" && trialPeriodDays
+            ? { trial_period_days: trialPeriodDays }
+            : undefined,
     });
-}
-/**
- * Stripe automatically creates invoices for subscriptions.
- * For one-time payments, we must enable them manually.
- * However, enabling invoices for subscriptions will throw an error.
- */
-function getInvoiceCreationConfig(mode) {
-    return mode === "payment"
-        ? {
-            enabled: true,
-        }
-        : undefined;
 }
 //# sourceMappingURL=checkoutUtils.js.map

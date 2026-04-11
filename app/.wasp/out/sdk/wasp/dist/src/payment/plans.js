@@ -10,27 +10,33 @@ export var PaymentPlanId;
 (function (PaymentPlanId) {
     PaymentPlanId["Hobby"] = "hobby";
     PaymentPlanId["Pro"] = "pro";
-    PaymentPlanId["Credits10"] = "credits10";
 })(PaymentPlanId || (PaymentPlanId = {}));
 export const paymentPlans = {
     [PaymentPlanId.Hobby]: {
-        getPaymentProcessorPlanId: () => requireNodeEnvVar("PAYMENTS_HOBBY_SUBSCRIPTION_PLAN_ID"),
+        getPaymentProcessorPlanId: (billingCycle) => {
+            const envVar = billingCycle === "monthly"
+                ? "PAYMENTS_HOBBY_MONTHLY_PLAN_ID"
+                : "PAYMENTS_HOBBY_YEARLY_PLAN_ID";
+            return requireNodeEnvVar(envVar);
+        },
         effect: { kind: "subscription" },
+        trialDays: 30,
     },
     [PaymentPlanId.Pro]: {
-        getPaymentProcessorPlanId: () => requireNodeEnvVar("PAYMENTS_PRO_SUBSCRIPTION_PLAN_ID"),
+        getPaymentProcessorPlanId: (billingCycle) => {
+            const envVar = billingCycle === "monthly"
+                ? "PAYMENTS_PRO_MONTHLY_PLAN_ID"
+                : "PAYMENTS_PRO_YEARLY_PLAN_ID";
+            return requireNodeEnvVar(envVar);
+        },
         effect: { kind: "subscription" },
-    },
-    [PaymentPlanId.Credits10]: {
-        getPaymentProcessorPlanId: () => requireNodeEnvVar("PAYMENTS_CREDITS_10_PLAN_ID"),
-        effect: { kind: "credits", amount: 10 },
+        trialDays: 14,
     },
 };
 export function prettyPaymentPlanName(planId) {
     const planToName = {
         [PaymentPlanId.Hobby]: "Hobby",
         [PaymentPlanId.Pro]: "Pro",
-        [PaymentPlanId.Credits10]: "10 Credits",
     };
     return planToName[planId];
 }
@@ -45,16 +51,12 @@ export function parsePaymentPlanId(planId) {
 export function getSubscriptionPaymentPlanIds() {
     return Object.values(PaymentPlanId).filter((planId) => paymentPlans[planId].effect.kind === "subscription");
 }
-/**
- * Returns Open SaaS `PaymentPlanId` for some payment provider's plan ID.
- *
- * Different payment providers track plan ID in different ways.
- * e.g. Stripe price ID, Polar product ID...
- */
 export function getPaymentPlanIdByPaymentProcessorPlanId(paymentProcessorPlanId) {
     for (const [planId, plan] of Object.entries(paymentPlans)) {
-        if (plan.getPaymentProcessorPlanId() === paymentProcessorPlanId) {
-            return planId;
+        for (const cycle of ["monthly", "yearly"]) {
+            if (plan.getPaymentProcessorPlanId(cycle) === paymentProcessorPlanId) {
+                return planId;
+            }
         }
     }
     throw new Error(`Unknown payment processor plan ID: ${paymentProcessorPlanId}`);

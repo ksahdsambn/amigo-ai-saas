@@ -118,8 +118,7 @@ async function handleOrderCreated(
 
   let numOfCreditsPurchased: number | undefined = undefined;
   let datePaid: Date | undefined = undefined;
-  if (status === "paid" && plan.effect.kind === "credits") {
-    numOfCreditsPurchased = plan.effect.amount;
+  if (status === "paid") {
     datePaid = new Date();
   }
 
@@ -264,7 +263,7 @@ async function fetchUserCustomerPortalUrl({
 
 function getPlanIdByVariantId(variantId: string): PaymentPlanId {
   const planId = Object.values(PaymentPlanId).find(
-    (planId) => paymentPlans[planId].getPaymentProcessorPlanId() === variantId,
+    (planId) => paymentPlans[planId].getPaymentProcessorPlanId("monthly") === variantId,
   );
   if (!planId) {
     throw new Error(`No plan with LemonSqueezy variant id ${variantId}`);

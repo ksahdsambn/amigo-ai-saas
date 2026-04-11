@@ -14,11 +14,5 @@ interface UpdateUserSubscriptionArgs {
     datePaid?: Date;
 }
 export declare function updateUserSubscription({ paymentProcessorUserId, paymentPlanId, subscriptionStatus, datePaid, }: UpdateUserSubscriptionArgs, userDelegate: PrismaClient["user"]): Promise<User>;
-interface UpdateUserCreditsArgs {
-    paymentProcessorUserId: NonNullable<User["paymentProcessorUserId"]>;
-    numOfCreditsPurchased: number;
-    datePaid: Date;
-}
-export declare function updateUserCredits({ paymentProcessorUserId, numOfCreditsPurchased, datePaid, }: UpdateUserCreditsArgs, userDelegate: PrismaClient["user"]): Promise<User>;
 export {};
 //# sourceMappingURL=user.d.ts.map

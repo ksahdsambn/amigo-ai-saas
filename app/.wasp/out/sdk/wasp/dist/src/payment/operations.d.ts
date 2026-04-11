@@ -5,7 +5,16 @@ export type CheckoutSession = {
     sessionUrl: string | null;
     sessionId: string;
 };
-declare const generateCheckoutSessionSchema: z.ZodNativeEnum<typeof PaymentPlanId>;
+declare const generateCheckoutSessionSchema: z.ZodObject<{
+    planId: z.ZodNativeEnum<typeof PaymentPlanId>;
+    billingCycle: z.ZodEnum<["monthly", "yearly"]>;
+}, "strip", z.ZodTypeAny, {
+    planId: PaymentPlanId;
+    billingCycle: "monthly" | "yearly";
+}, {
+    planId: PaymentPlanId;
+    billingCycle: "monthly" | "yearly";
+}>;
 type GenerateCheckoutSessionInput = z.infer<typeof generateCheckoutSessionSchema>;
 export declare const generateCheckoutSession: GenerateCheckoutSession<GenerateCheckoutSessionInput, CheckoutSession>;
 export declare const getCustomerPortalUrl: GetCustomerPortalUrl<void, string | null>;

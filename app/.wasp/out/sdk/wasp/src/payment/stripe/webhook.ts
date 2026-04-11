@@ -15,7 +15,7 @@ import {
   paymentPlans,
   SubscriptionStatus,
 } from "../plans";
-import { updateUserCredits, updateUserSubscription } from "../user";
+import { updateUserSubscription } from "../user";
 import { deprovisionInstance } from "../../zeroclaw/provisioning";
 import { stripeClient } from "./stripeClient";
 
@@ -111,16 +111,6 @@ async function handleInvoicePaid(
   );
 
   switch (paymentPlanId) {
-    case PaymentPlanId.Credits10:
-      await updateUserCredits(
-        {
-          paymentProcessorUserId: customerId,
-          datePaid: invoicePaidAtDate,
-          numOfCreditsPurchased: paymentPlans[paymentPlanId].effect.amount,
-        },
-        prismaUserDelegate,
-      );
-      break;
     case PaymentPlanId.Pro:
     case PaymentPlanId.Hobby: {
       const user = await updateUserSubscription(

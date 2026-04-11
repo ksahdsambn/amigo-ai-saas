@@ -13,9 +13,8 @@ import {
   getPaymentPlanIdByPaymentProcessorPlanId,
   SubscriptionStatus as OpenSaasSubscriptionStatus,
   PaymentPlanId,
-  paymentPlans,
 } from "../plans";
-import { updateUserCredits, updateUserSubscription } from "../user";
+import { updateUserSubscription } from "../user";
 
 /**
  * Polar requires a raw request to construct events successfully.
@@ -89,16 +88,6 @@ async function handleOrderPaid(
   );
 
   switch (paymentPlanId) {
-    case PaymentPlanId.Credits10:
-      await updateUserCredits(
-        {
-          paymentProcessorUserId: order.customerId,
-          numOfCreditsPurchased: paymentPlans[paymentPlanId].effect.amount,
-          datePaid: order.createdAt,
-        },
-        userDelegate,
-      );
-      break;
     case PaymentPlanId.Hobby:
     case PaymentPlanId.Pro:
       await updateUserSubscription(

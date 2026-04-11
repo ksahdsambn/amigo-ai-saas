@@ -1,5 +1,4 @@
 import { getCustomerPortalUrl, useQuery } from "wasp/client/operations";
-import { Link as WaspRouterLink, routes } from "wasp/client/router";
 import type { User } from "wasp/entities";
 import { Button } from "../client/components/ui/button";
 import {
@@ -73,11 +72,8 @@ export default function AccountPage({ user }: { user: User }) {
                 <div className="text-muted-foreground text-sm font-medium">
                   Credits
                 </div>
-                <div className="text-foreground mt-1 text-sm sm:col-span-1 sm:mt-0">
+                <div className="text-foreground mt-1 text-sm sm:col-span-2 sm:mt-0">
                   {user.credits} credits
-                </div>
-                <div className="ml-auto mt-4 sm:mt-0">
-                  <BuyMoreButton subscriptionStatus={user.subscriptionStatus} />
                 </div>
               </div>
             </div>
@@ -171,25 +167,5 @@ function CustomerPortalButton() {
         Manage Payment Details
       </Button>
     </a>
-  );
-}
-
-function BuyMoreButton({
-  subscriptionStatus,
-}: Pick<User, "subscriptionStatus">) {
-  if (
-    subscriptionStatus === SubscriptionStatus.Active ||
-    subscriptionStatus === SubscriptionStatus.CancelAtPeriodEnd
-  ) {
-    return null;
-  }
-
-  return (
-    <WaspRouterLink
-      to={routes.PricingPageRoute.to}
-      className="text-primary hover:text-primary/80 text-sm font-medium transition-colors duration-200"
-    >
-      <Button variant="link">Buy More Credits</Button>
-    </WaspRouterLink>
   );
 }

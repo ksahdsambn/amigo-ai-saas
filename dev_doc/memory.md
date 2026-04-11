@@ -807,3 +807,185 @@ INSERT INTO "DailyStats" (
     - PLAUSIBLE_BASE_URL=https://plausible.agentkm.com
   ```
 - 当前的实现允许在缺少 Analytics 配置的情况下正常运行，但统计数据将显示为 0
+
+---
+
+## 2026-04-12
+
+### 操作模型
+glm-5.1 (zhipuai-coding-plan/glm-5.1)
+
+### 操作内容: Pricing 改版 — Step 1-8（后端代码改动）
+
+按照 `dev_doc/TASK_LIST_PRICING.md` 任务清单，按顺序完成 Step 1 ~ Step 8。
+
+#### Step 1 — plans.ts 计划定义重构
+- **文件**: `app/src/payment/plans.ts`
+- **变更**: 整体替换，移除 `Credits10` 枚举值和 `credits` kind，新增 `BillingCycle` 类型，`getPaymentProcessorPlanId` 签名改为接收 `billingCycle` 参数，新增 `trialDays` 字段（Hobby=30, Pro=14），`getPaymentPlanIdByPaymentProcessorPlanId` 遍历月付+年付两组 Price ID
+- **验证**: `npx tsc --noEmit` 中 plans.ts 自身无报错
+
+#### Step 2 — .env.server + .env.server.example 环境变量更新
+- **文件**: `app/.env.server`, `app/.env.server.example`
+- **变更**: 移除 `PAYMENTS_HOBBY_SUBSCRIPTION_PLAN_ID`、`PAYMENTS_PRO_SUBSCRIPTION_PLAN_ID`、`PAYMENTS_CREDITS_10_PLAN_ID`；新增 `PAYMENTS_HOBBY_MONTHLY_PLAN_ID`、`PAYMENTS_HOBBY_YEARLY_PLAN_ID`、`PAYMENTS_PRO_MONTHLY_PLAN_ID`、`PAYMENTS_PRO_YEARLY_PLAN_ID`（值待 Stripe Dashboard 配置后填入）
+
+#### Step 3 — operations.ts 支付操作扩展 billingCycle
+- **文件**: `app/src/payment/operations.ts`
+- **变更**: Zod Schema 改为 `z.object({ planId, billingCycle })`，解构 `{ planId, billingCycle }`，`createCheckoutSession` 传入 `billingCycle`
+
+#### Step 4 — checkoutUtils.ts 添加 trialPeriodDays 支持
+- **文件**: `app/src/payment/stripe/checkoutUtils.ts`
+- **变更**: `CreateStripeCheckoutSessionParams` 新增 `trialPeriodDays?: number`，`createStripeCheckoutSession` 中新增 `subscription_data` 条件逻辑，删除 `getInvoiceCreationConfig` 死代码函数
+
+#### Step 5 — paymentProcessor.ts 接口新增 billingCycle
+- **文件**: `app/src/payment/paymentProcessor.ts`
+- **变更**: 导入 `BillingCycle`，`CreateCheckoutSessionArgs` 接口新增 `billingCycle: BillingCycle`
+
+#### Step 6 — stripe/paymentProcessor.ts 适配新计划 + 删除死代码
+- **文件**: `app/src/payment/stripe/paymentProcessor.ts`
+- **变更**: `createStripeCheckoutSession` 传入 `trialPeriodDays: paymentPlan.trialDays`，`mode` 硬编码 `"subscription"`，`priceId` 使用 `paymentPlan.getPaymentProcessorPlanId(args.billingCycle)`，删除 `paymentPlanEffectToStripeCheckoutSessionMode` 函数和 `assertUnreachable` import
+- **验证**: `npx tsc --noEmit` 此文件无报错
+
+#### Step 7 — stripe/webhook.ts 移除 Credits10 分支
+- **文件**: `app/src/payment/stripe/webhook.ts`
+- **变更**: 删除 `case PaymentPlanId.Credits10:` 整个 case 块，移除 `updateUserCredits` import，保留 Hobby/Pro 的 `provisionZeroclawJob.submit` 逻辑和 `assertUnreachable` default
+- **验证**: `npx tsc --noEmit` 此文件无报错
+
+#### Step 8 — polar/webhook.ts + user.ts 清理遗留引用
+- **文件**: `app/src/payment/polar/webhook.ts`
+  - 删除 `case PaymentPlanId.Credits10:` case 块，移除 `updateUserCredits` import 和 `paymentPlans` import
+- **文件**: `app/src/payment/user.ts`
+  - 删除 `UpdateUserCreditsArgs` 接口和 `updateUserCredits` 函数
+- **文件**: `app/src/payment/polar/paymentProcessor.ts`（最小修复）
+  - 适配新的 `getPaymentProcessorPlanId(billingCycle)` 签名，从解构中新增 `billingCycle` 参数
+- **文件**: `app/src/payment/lemonSqueezy/paymentProcessor.ts`（最小修复）
+  - 适配新的 `getPaymentProcessorPlanId(billingCycle)` 签名
+- **文件**: `app/src/payment/lemonSqueezy/webhook.ts`（最小修复）
+  - 移除 `plan.effect.kind === "credits"` 判断（credits kind 已不存在）
+  - `getPlanIdByVariantId` 中 `getPaymentProcessorPlanId()` 添加 `"monthly"` 参数
+- **验证**: `npx tsc --noEmit` 后端所有文件无报错（仅剩 `PricingPage.tsx` 前端报错，将在 Step 9 修复）
+
+#### 额外说明
+- 文档标注 `lemonSqueezy/` 和 `polar/paymentProcessor.ts` 为 "Out of Scope"，但因 `getPaymentProcessorPlanId` 签名变更导致编译错误，按最小改动原则修复
+- `polar/paymentProcessor.ts` 和 `lemonSqueezy/paymentProcessor.ts` 需要接收 `billingCycle` 参数（由接口 `CreateCheckoutSessionArgs` 新增字段要求），传入默认 `"monthly"` 即可
+
+#### 待完成
+- Step 11-12（E2E 测试更新、构建验证）需在后续会话执行
+
+---
+
+## 2026-04-12 (第三会话)
+
+### 操作模型
+glm-5.1 (zhipuai-coding-plan/glm-5.1)
+
+### 操作内容: Pricing 改版 — Step 9-10（前端代码改动）
+
+按照 `dev_doc/TASK_LIST_PRICING.md` 任务清单，按顺序完成 Step 9 ~ Step 10。
+
+#### Step 9 — PricingPage.tsx 定价页面 UI 重构
+- **文件**: `app/src/payment/PricingPage.tsx`
+- **变更**:
+  - 新增 `BillingCycle` import，新增 `billingCycle` state（默认 `"monthly"`）
+  - `paymentPlanCards` 从 `Record<PaymentPlanId, PaymentPlanCard>` 改为 `Record<"free" | PaymentPlanId, PaymentPlanCard>`
+  - 每个卡片含 `monthlyPrice` + `yearlyPrice`（Free: $0/$0, Hobby: $3.99/$9.99, Pro: $6.99/$16.99）
+  - 卡片渲染顺序: `["free", PaymentPlanId.Hobby, PaymentPlanId.Pro]`
+  - Free 卡片: 始终 $0 不受 Toggle 影响；未登录→"Get Started"→navigate("/signup")；已登录→"Current Plan" disabled
+  - Hobby/Pro 卡片: 价格根据 billingCycle 切换 monthlyPrice/yearlyPrice，后缀切换 "/month"/"/year"
+  - Toggle 组件: 两个 Button，默认选中 Monthly，Yearly 带副标签 "Save up to 80%"（绿色 text-xs）
+  - `handleBuyNowClick` 签名改为 `(paymentPlanId: PaymentPlanId, billingCycle: BillingCycle)`
+  - `generateCheckoutSession` 传入 `{ planId: paymentPlanId, billingCycle }`
+  - 移除 Credits10 卡片配置
+  - 页面描述更新为 Amigo 品牌文案
+  - features 列表按附录 C 定义
+- **同步 `.wasp/out/` 生成文件**:
+  - 复制 12 个源文件到 `.wasp/out/sdk/wasp/src/payment/` 和 `.wasp/out/src/payment/`
+  - 更新 6 个 `.d.ts` 类型声明文件（plans, operations, paymentProcessor, user, checkoutUtils, PricingPage）
+- **验证**: `npx tsc --noEmit` 零错误，所有 checklist 项通过
+
+#### Step 10 — AccountPage.tsx 移除 Buy More Credits
+- **文件**: `app/src/user/AccountPage.tsx`
+- **变更**:
+  - 删除 `BuyMoreButton` 组件（原 Line 177-194）
+  - 删除 Credits 区域中的 "Buy More Credits" 按钮（原 Line 79-81）
+  - Credits 区域只保留标签和数值: `{user.credits} credits`（`sm:col-span-2`）
+  - 移除不再需要的 import: `WaspRouterLink`, `routes`
+  - `CustomerPortalButton` 和 `UserCurrentSubscriptionPlan` 功能不变
+- **同步**: AccountPage.tsx 复制到 `.wasp/out/` 两目录
+- **验证**: `npx tsc --noEmit` 零错误，所有 checklist 项通过
+
+---
+
+## 2026-04-12 (第四会话)
+
+### 操作模型
+glm-5.1 (zhipuai-coding-plan/glm-5.1)
+
+### 操作内容: Pricing 改版 — Step 11-12（E2E 测试更新 + 构建验证）
+
+按照 `dev_doc/TASK_LIST_PRICING.md` 任务清单，按顺序完成 Step 11 ~ Step 12。
+
+#### Step 11 — E2E 测试更新
+
+##### Step 11a — `e2e-tests/tests/utils.ts`
+- **变更**:
+  - `makeStripePayment` 的 `planId` 参数类型从 `"hobby" | "pro" | "credits10"` 改为 `"hobby" | "pro"`
+  - 新增 `billingCycle?: "monthly" | "yearly"` 可选参数，默认 `"monthly"`
+  - 删除 `if (planId === "credits10")` 分支（原 Line 130-132），统一断言为 `await expect(page.getByText(planId)).toBeVisible()`
+  - 移除冗余注释（Stripe slow timeout 注释等）
+
+##### Step 11b — `e2e-tests/tests/pricingPageTests.spec.ts`
+- **变更**:
+  - 删除整个 "Make test payment with Stripe for 10 credits" 测试用例（原 Line 79-85）
+  - 移除不再需要的 `acceptAllCookies` import
+  - 保留的测试用例: "Log In to Buy Plan button"、"Buy Plan button before payment"、"hobby plan payment"、"Manage Subscription button after payment"
+  - `.first()` 选择器无需修改（Free 卡片不产生 "Log in to buy plan"/"Buy plan"/"Manage Subscription" 按钮，`.first()` 自动定位到 Hobby 卡片）
+
+- **验证**: `npx tsc --noEmit` 零错误，`credits10` 关键词在两文件中均不存在
+
+#### Step 12 — 构建验证 + 全局清理检查
+
+##### 12.1 TypeScript 检查
+- `npx tsc --noEmit` — 零错误 ✅
+
+##### 12.2 全局关键词搜索
+在 `app/src/` 和 `e2e-tests/` 中搜索 8 个关键词，确认代码中无残留：
+
+| 关键词 | 结果 |
+|--------|------|
+| `Credits10` | ✅ 无残留 |
+| `credits10` | ✅ 无残留 |
+| `CREDITS_10` | ✅ 无残留 |
+| `PAYMENTS_HOBBY_SUBSCRIPTION_PLAN_ID` | ✅ 无残留 |
+| `PAYMENTS_PRO_SUBSCRIPTION_PLAN_ID` | ✅ 无残留 |
+| `getInvoiceCreationConfig` | ✅ 无残留 |
+| `paymentPlanEffectToStripeCheckoutSessionMode` | ✅ 无残留 |
+| `updateUserCredits` | ✅ 无残留 |
+
+##### 12.3 Wasp 构建
+- `wasp build` — 成功 ✅
+
+##### 12.4 Vite 前端构建
+- `REACT_APP_API_URL=https://api.agentkm.com npx vite build` — 成功 ✅ (14.40s)
+- 产物大小: index.js 1,330.86 kB (gzip: 395.84 kB), index.css 119.50 kB
+
+#### Pricing 改版全部 12 步完成总结
+
+| Step | 文件 | 状态 |
+|------|------|------|
+| 1 | plans.ts | ✅ 会话 1 完成 |
+| 2 | .env.server + .env.server.example | ✅ 会话 1 完成 |
+| 3 | operations.ts | ✅ 会话 1 完成 |
+| 4 | checkoutUtils.ts | ✅ 会话 1 完成 |
+| 5 | paymentProcessor.ts | ✅ 会话 1 完成 |
+| 6 | stripe/paymentProcessor.ts | ✅ 会话 1 完成 |
+| 7 | stripe/webhook.ts | ✅ 会话 1 完成 |
+| 8 | polar/webhook.ts + user.ts + lemonSqueezy 最小修复 | ✅ 会话 1 完成 |
+| 9 | PricingPage.tsx | ✅ 会话 2 完成 |
+| 10 | AccountPage.tsx | ✅ 会话 2 完成 |
+| 11 | utils.ts + pricingPageTests.spec.ts | ✅ 本次会话完成 |
+| 12 | 构建验证 + 全局清理 | ✅ 本次会话完成 |
+
+#### 待部署
+- 构建产物已就绪（`.wasp/out/`），需 `git push` 触发自动部署
+- 服务器 docker-compose.yml 环境变量需同步更新（4 个新 `PAYMENTS_*_MONTHLY/YEARLY_PLAN_ID`）
+- Stripe Dashboard 需创建 4 个新 Price 并填入 Price ID

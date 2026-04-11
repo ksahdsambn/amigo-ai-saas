@@ -3,8 +3,8 @@ import express from "express";
 import { requireNodeEnvVar } from "../../server/utils";
 import { assertUnreachable } from "../../shared/utils";
 import { UnhandledWebhookEventError } from "../errors";
-import { getPaymentPlanIdByPaymentProcessorPlanId, SubscriptionStatus as OpenSaasSubscriptionStatus, PaymentPlanId, paymentPlans, } from "../plans";
-import { updateUserCredits, updateUserSubscription } from "../user";
+import { getPaymentPlanIdByPaymentProcessorPlanId, SubscriptionStatus as OpenSaasSubscriptionStatus, PaymentPlanId, } from "../plans";
+import { updateUserSubscription } from "../user";
 /**
  * Polar requires a raw request to construct events successfully.
  */
@@ -55,13 +55,6 @@ export const polarWebhook = async (request, response, context) => {
 async function handleOrderPaid({ data: order }, userDelegate) {
     const paymentPlanId = getPaymentPlanIdByPaymentProcessorPlanId(order.productId);
     switch (paymentPlanId) {
-        case PaymentPlanId.Credits10:
-            await updateUserCredits({
-                paymentProcessorUserId: order.customerId,
-                numOfCreditsPurchased: paymentPlans[paymentPlanId].effect.amount,
-                datePaid: order.createdAt,
-            }, userDelegate);
-            break;
         case PaymentPlanId.Hobby:
         case PaymentPlanId.Pro:
             await updateUserSubscription({

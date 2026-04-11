@@ -4,7 +4,11 @@ import type {
   GetCustomerPortalUrl,
 } from "wasp/server/operations";
 import * as z from "zod";
-import { PaymentPlanId, paymentPlans } from "../payment/plans";
+import {
+  PaymentPlanId,
+  BillingCycle,
+  paymentPlans,
+} from "../payment/plans";
 import { ensureArgsSchemaOrThrowHttpError } from "../server/validation";
 import { paymentProcessor } from "./paymentProcessor";
 
@@ -13,7 +17,10 @@ export type CheckoutSession = {
   sessionId: string;
 };
 
-const generateCheckoutSessionSchema = z.nativeEnum(PaymentPlanId);
+const generateCheckoutSessionSchema = z.object({
+  planId: z.nativeEnum(PaymentPlanId),
+  billingCycle: z.enum(["monthly", "yearly"]),
+});
 
 type GenerateCheckoutSessionInput = z.infer<
   typeof generateCheckoutSessionSchema
@@ -22,7 +29,7 @@ type GenerateCheckoutSessionInput = z.infer<
 export const generateCheckoutSession: GenerateCheckoutSession<
   GenerateCheckoutSessionInput,
   CheckoutSession
-> = async (rawPaymentPlanId, context) => {
+> = async (rawArgs, context) => {
   if (!context.user) {
     throw new HttpError(
       401,
@@ -30,22 +37,22 @@ export const generateCheckoutSession: GenerateCheckoutSession<
     );
   }
 
-  const paymentPlanId = ensureArgsSchemaOrThrowHttpError(
+  const { planId, billingCycle } = ensureArgsSchemaOrThrowHttpError(
     generateCheckoutSessionSchema,
-    rawPaymentPlanId,
+    rawArgs,
   );
   const userId = context.user.id;
   const userEmail = context.user.email;
   if (!userEmail) {
-    // If using the usernameAndPassword Auth method, switch to an Auth method that provides an email.
     throw new HttpError(403, "User needs an email to make a payment.");
   }
 
-  const paymentPlan = paymentPlans[paymentPlanId];
+  const paymentPlan = paymentPlans[planId];
   const { session } = await paymentProcessor.createCheckoutSession({
     userId,
     userEmail,
     paymentPlan,
+    billingCycle,
     prismaUserDelegate: context.entities.User,
   });
 
